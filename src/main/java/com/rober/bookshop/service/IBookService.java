@@ -15,5 +15,6 @@ public interface IBookService {
     void deleteBook(Long id);
     ResultPaginationDTO getAll(Specification<Book> spec, Pageable pageable);
     BookResponseDTO getBookById(Long id);
+    Book getBookEntityById(Long id);
 
 }

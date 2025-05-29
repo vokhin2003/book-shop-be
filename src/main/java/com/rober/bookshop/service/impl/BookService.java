@@ -116,4 +116,9 @@ public class BookService implements IBookService {
         return this.bookMapper.toResponseDTO(book);
     }
 
+    @Override
+    public Book getBookEntityById(Long id) {
+        return this.bookRepository.findById(id).orElseThrow(() -> new IdInvalidException("Book with id = " + id + " not found"));
+    }
+
 }

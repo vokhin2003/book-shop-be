@@ -28,5 +28,6 @@ public interface IUserService {
 
     ResultPaginationDTO getAllUsers(Specification<User> spec, Pageable pageable);
     void handleUserLogout();
+    User getUserLogin();
 
 }

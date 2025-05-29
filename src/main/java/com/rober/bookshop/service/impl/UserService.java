@@ -356,5 +356,12 @@ public class UserService implements IUserService {
         log.info("User session cleared for email {}", email);
     }
 
+    @Override
+    public User getUserLogin() {
+        String email = SecurityUtil.getCurrentUserLogin().orElseThrow(() -> new IdInvalidException("User not found in SecurityContext"));
+
+        return handleGetUserByUsername(email);
+    }
+
 
 }
