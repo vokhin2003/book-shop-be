@@ -55,6 +55,7 @@ public class SecurityConfiguration {
                                 .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/books/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/skills/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/payments/vnpay-payment-return").permitAll()
                                 .anyRequest().authenticated()
 //                                .anyRequest().permitAll()
                 )

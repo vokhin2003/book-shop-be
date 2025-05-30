@@ -1,5 +1,6 @@
 package com.rober.bookshop.service;
 
+import com.rober.bookshop.enums.OrderStatus;
 import com.rober.bookshop.model.entity.User;
 import com.rober.bookshop.model.request.CreateOrderRequestDTO;
 import com.rober.bookshop.model.response.OrderResponseDTO;
@@ -7,5 +8,6 @@ import com.rober.bookshop.model.response.OrderResponseDTO;
 public interface IOrderService {
 
     OrderResponseDTO handleCreateOrder(CreateOrderRequestDTO reqDTO, User user);
+    void updateOrderStatusById(Long orderId, OrderStatus status);
 
 }

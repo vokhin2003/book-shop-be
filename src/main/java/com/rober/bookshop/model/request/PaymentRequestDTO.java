@@ -1,5 +1,6 @@
 package com.rober.bookshop.model.request;
 
+import com.rober.bookshop.enums.PaymentMethod;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,6 +15,9 @@ public class PaymentRequestDTO {
     private Long orderId;
 
     @NotNull(message = "Order total money is required")
-    private Double amount;
+    private BigDecimal amount;
+
+    @NotNull(message = "Payment method is required")
+    private PaymentMethod paymentMethod;
 
 }

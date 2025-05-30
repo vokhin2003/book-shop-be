@@ -1,19 +1,19 @@
 package com.rober.bookshop.service.impl;
 
 import com.rober.bookshop.enums.OrderStatus;
+import com.rober.bookshop.enums.PaymentMethod;
+import com.rober.bookshop.enums.TransactionStatus;
 import com.rober.bookshop.exception.IdInvalidException;
 import com.rober.bookshop.exception.InputInvalidException;
 import com.rober.bookshop.mapper.OrderMapper;
-import com.rober.bookshop.model.entity.Book;
-import com.rober.bookshop.model.entity.Order;
-import com.rober.bookshop.model.entity.OrderItem;
-import com.rober.bookshop.model.entity.User;
+import com.rober.bookshop.model.entity.*;
 import com.rober.bookshop.model.request.CreateOrderRequestDTO;
 import com.rober.bookshop.model.request.OrderItemRequestDTO;
 import com.rober.bookshop.model.response.OrderResponseDTO;
 import com.rober.bookshop.repository.BookRepository;
 import com.rober.bookshop.repository.OrderItemRepository;
 import com.rober.bookshop.repository.OrderRepository;
+import com.rober.bookshop.repository.TransactionRepository;
 import com.rober.bookshop.service.IOrderService;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,6 +33,7 @@ public class OrderService implements IOrderService {
     private final OrderMapper orderMapper;
     private final BookRepository bookRepository;
     private final OrderItemRepository orderItemRepository;
+    private final TransactionRepository transactionRepository;
 
     @Override
     @Transactional
@@ -81,7 +83,39 @@ public class OrderService implements IOrderService {
         orderItems.forEach(item -> item.setOrder(order));
         this.orderItemRepository.saveAll(orderItems);
 
-        return orderMapper.toResponseDTO(this.orderRepository.save(order));
+        Order savedOrder = this.orderRepository.save(order);
 
+        // Tạo Transaction
+        Transaction transaction = new Transaction();
+        String transactionId = reqDTO.getPaymentMethod() == PaymentMethod.COD
+                ? "COD_" + savedOrder.getId()
+                : savedOrder.getId() + "_" + Instant.now().toEpochMilli();
+        transaction.setTransactionId(transactionId);
+        transaction.setAmount(totalPrice);
+        transaction.setPaymentMethod(reqDTO.getPaymentMethod());
+        transaction.setStatus(TransactionStatus.PENDING);
+        transaction.setTransactionDate(Instant.now());
+        transaction.setOrder(savedOrder);
+//        transaction.setOrderInfo("Payment for order with id " + savedOrder.getId() + ". Total: " + totalPrice + " VND");
+        transaction.setOrderInfo(String.format("Payment for order with id %d. Total: %.2f VND",
+                savedOrder.getId(), totalPrice));
+
+        transactionRepository.save(transaction);
+
+        return orderMapper.toResponseDTO(savedOrder);
+
+    }
+
+    @Override
+    @Transactional
+    public void updateOrderStatusById(Long orderId, OrderStatus status) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IdInvalidException("Order with id = " + orderId + " not found"));
+        if (order.getStatus() == OrderStatus.PENDING) {
+            order.setStatus(status);
+            orderRepository.save(order);
+        } else {
+            throw new IdInvalidException("Order is not in PENDING status");
+        }
     }
 }
