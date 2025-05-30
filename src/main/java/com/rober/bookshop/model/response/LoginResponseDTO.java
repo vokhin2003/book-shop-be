@@ -24,6 +24,7 @@ public class LoginResponseDTO {
         private String email;
         private String phone;
         private String fullName;
+        private String address;
         private String role;
         private Long id;
         private String avatar;

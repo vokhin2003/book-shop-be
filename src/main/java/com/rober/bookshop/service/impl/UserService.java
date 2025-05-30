@@ -157,6 +157,7 @@ public class UserService implements IUserService {
                     .id(savedUser.getId())
                     .email(savedUser.getEmail())
                     .phone(savedUser.getPhone())
+                    .address(savedUser.getAddress())
                     .fullName(savedUser.getFullName())
                     .avatar(savedUser.getAvatar())
                     .role(savedUser.getRole().getName())
@@ -229,6 +230,8 @@ public class UserService implements IUserService {
             userLogin.setId(savedUser.getId());
             userLogin.setEmail(savedUser.getEmail());
             userLogin.setFullName(savedUser.getFullName());
+            userLogin.setPhone(savedUser.getPhone());
+            userLogin.setAddress(savedUser.getAddress());
             userLogin.setRole(savedUser.getRole().getName());
             userLogin.setPermissions(savedUser.getRole().getPermissions());
 
