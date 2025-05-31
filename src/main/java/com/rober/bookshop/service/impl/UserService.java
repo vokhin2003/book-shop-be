@@ -2,13 +2,12 @@ package com.rober.bookshop.service.impl;
 
 import com.rober.bookshop.enums.TokenType;
 import com.rober.bookshop.exception.IdInvalidException;
+import com.rober.bookshop.exception.InputInvalidException;
 import com.rober.bookshop.mapper.UserMapper;
 import com.rober.bookshop.model.entity.Role;
 import com.rober.bookshop.model.entity.Token;
 import com.rober.bookshop.model.entity.User;
-import com.rober.bookshop.model.request.LoginRequestDTO;
-import com.rober.bookshop.model.request.RegisterRequestDTO;
-import com.rober.bookshop.model.request.UserRequestDTO;
+import com.rober.bookshop.model.request.*;
 import com.rober.bookshop.model.response.LoginResponseDTO;
 import com.rober.bookshop.model.response.RegisterResponseDTO;
 import com.rober.bookshop.model.response.ResultPaginationDTO;
@@ -316,6 +315,14 @@ public class UserService implements IUserService {
     }
 
     @Override
+    public UserResponseDTO handleUpdateInfo(UserInfoRequestDTO reqDTO) {
+        User updatedUser = this.userRepository.findById(reqDTO.getId()).orElseThrow(() -> new IdInvalidException("User with id = " + reqDTO.getId() + " not found in database"));
+
+        this.userMapper.updateUserFromInfoDTO(reqDTO, updatedUser);
+        return this.userMapper.toResponseDTO(this.userRepository.save(updatedUser));
+    }
+
+    @Override
     public ResultPaginationDTO getAllUsers(Specification<User> spec, Pageable pageable) {
         Page<User> pageUser = this.userRepository.findAll(spec, pageable);
         ResultPaginationDTO res = new ResultPaginationDTO();
@@ -364,6 +371,18 @@ public class UserService implements IUserService {
         String email = SecurityUtil.getCurrentUserLogin().orElseThrow(() -> new IdInvalidException("User not found in SecurityContext"));
 
         return handleGetUserByUsername(email);
+    }
+
+    @Override
+    public void handleChangePassword(ChangePasswordRequestDTO reqDTO) {
+        User user = this.userRepository.findById(reqDTO.getId()).orElseThrow(() -> new IdInvalidException("User with id = " + reqDTO.getId() + " not found in database"));
+
+        if (!passwordEncoder.matches(reqDTO.getOldPassword(), user.getPassword())) {
+            throw new InputInvalidException("Current password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(reqDTO.getNewPassword()));
+        userRepository.save(user);
     }
 
 

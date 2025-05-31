@@ -1,9 +1,7 @@
 package com.rober.bookshop.service;
 
 import com.rober.bookshop.model.entity.User;
-import com.rober.bookshop.model.request.LoginRequestDTO;
-import com.rober.bookshop.model.request.RegisterRequestDTO;
-import com.rober.bookshop.model.request.UserRequestDTO;
+import com.rober.bookshop.model.request.*;
 import com.rober.bookshop.model.response.LoginResponseDTO;
 import com.rober.bookshop.model.response.RegisterResponseDTO;
 import com.rober.bookshop.model.response.ResultPaginationDTO;
@@ -25,9 +23,11 @@ public interface IUserService {
     UserResponseDTO create(UserRequestDTO reqDTO);
     UserResponseDTO update(Long id, UserRequestDTO reqDTO);
     void delete(Long id);
+    UserResponseDTO handleUpdateInfo(UserInfoRequestDTO reqDTO);
 
     ResultPaginationDTO getAllUsers(Specification<User> spec, Pageable pageable);
     void handleUserLogout();
     User getUserLogin();
+    void handleChangePassword(ChangePasswordRequestDTO reqDTO);
 
 }

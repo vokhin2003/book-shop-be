@@ -3,6 +3,7 @@ package com.rober.bookshop.controller;
 import com.rober.bookshop.annotation.ApiMessage;
 import com.rober.bookshop.exception.IdInvalidException;
 import com.rober.bookshop.model.entity.User;
+import com.rober.bookshop.model.request.ChangePasswordRequestDTO;
 import com.rober.bookshop.model.request.LoginRequestDTO;
 import com.rober.bookshop.model.request.RegisterRequestDTO;
 import com.rober.bookshop.model.response.LoginResponseDTO;
@@ -125,6 +126,13 @@ public class AuthController {
                 .maxAge(0)
                 .build();
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, deleteSpringCookie.toString()).body(null);
+    }
+
+    @PostMapping("/auth/change-password")
+    @ApiMessage("User change password")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequestDTO reqDTO) {
+        this.userService.handleChangePassword(reqDTO);
+        return ResponseEntity.ok(null);
     }
 
 }

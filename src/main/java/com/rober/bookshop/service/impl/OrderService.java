@@ -3,20 +3,31 @@ package com.rober.bookshop.service.impl;
 import com.rober.bookshop.enums.OrderStatus;
 import com.rober.bookshop.enums.PaymentMethod;
 import com.rober.bookshop.enums.TransactionStatus;
+import com.rober.bookshop.exception.BadRequestException;
 import com.rober.bookshop.exception.IdInvalidException;
 import com.rober.bookshop.exception.InputInvalidException;
 import com.rober.bookshop.mapper.OrderMapper;
 import com.rober.bookshop.model.entity.*;
 import com.rober.bookshop.model.request.CreateOrderRequestDTO;
 import com.rober.bookshop.model.request.OrderItemRequestDTO;
+import com.rober.bookshop.model.response.BookResponseDTO;
+import com.rober.bookshop.model.response.CancelOrderResponseDTO;
 import com.rober.bookshop.model.response.OrderResponseDTO;
+import com.rober.bookshop.model.response.ResultPaginationDTO;
 import com.rober.bookshop.repository.BookRepository;
 import com.rober.bookshop.repository.OrderItemRepository;
 import com.rober.bookshop.repository.OrderRepository;
 import com.rober.bookshop.repository.TransactionRepository;
 import com.rober.bookshop.service.IOrderService;
+import com.rober.bookshop.service.IUserService;
+import com.turkraft.springfilter.builder.FilterBuilder;
+import com.turkraft.springfilter.converter.FilterSpecificationConverter;
+import com.turkraft.springfilter.parser.node.FilterNode;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +35,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +46,9 @@ public class OrderService implements IOrderService {
     private final BookRepository bookRepository;
     private final OrderItemRepository orderItemRepository;
     private final TransactionRepository transactionRepository;
+    private final IUserService userService;
+    private final FilterBuilder filterBuilder;
+    private final FilterSpecificationConverter filterSpecificationConverter;
 
     @Override
     @Transactional
@@ -117,5 +132,62 @@ public class OrderService implements IOrderService {
         } else {
             throw new IdInvalidException("Order is not in PENDING status");
         }
+    }
+
+    @Override
+    public ResultPaginationDTO fetchHistory(Specification<Order> spec, Pageable pageable) {
+
+        // Lấy user từ email
+        User currentUser = this.userService.getUserLogin();
+        if (currentUser == null) {
+            throw new IdInvalidException("User not found");
+        }
+
+        // Tạo FilterNode để lọc theo user_id
+        FilterNode userFilterNode = filterBuilder.field("user.id").equal(filterBuilder.input(currentUser.getId())).get();
+        Specification<Order> userSpec = filterSpecificationConverter.convert(userFilterNode);
+
+        // Kết hợp userSpec với spec từ @Filter
+        Specification<Order> finalSpec = Specification.where(userSpec).and(spec);
+
+        Page<Order> orderPage = orderRepository.findAll(finalSpec, pageable);
+
+        ResultPaginationDTO res = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
+
+        meta.setCurrent(pageable.getPageNumber() + 1);
+        meta.setPageSize(pageable.getPageSize());
+
+        meta.setPages(orderPage.getTotalPages());
+        meta.setTotal(orderPage.getTotalElements());
+
+        res.setMeta(meta);
+
+        List<OrderResponseDTO> listOrder = orderPage.getContent().stream().map(this.orderMapper::toResponseDTO).toList();
+
+        res.setResult(listOrder);
+        return res;
+    }
+
+    @Override
+    public OrderResponseDTO fetchOrderById(Long id) {
+        Order order = this.orderRepository.findById(id).orElseThrow(() -> new IdInvalidException("Order with id = " + id + " not found"));
+        return orderMapper.toResponseDTO(order);
+    }
+
+    @Override
+    public CancelOrderResponseDTO handleCancelOrder(Long orderId) {
+        Order canceledOrder = this.orderRepository.findById(orderId).orElseThrow(() -> new IdInvalidException("Order with id = " + orderId + " not found"));
+        if (canceledOrder.getStatus() != OrderStatus.PENDING) {
+            throw new BadRequestException("The order cannot be canceled because it is being processed");
+        }
+
+        canceledOrder.setStatus(OrderStatus.CANCELLED);
+        this.orderRepository.save(canceledOrder);
+        CancelOrderResponseDTO res = new CancelOrderResponseDTO();
+        res.setOrderId(canceledOrder.getId());
+        res.setStatus(canceledOrder.getStatus());
+
+        return res;
     }
 }

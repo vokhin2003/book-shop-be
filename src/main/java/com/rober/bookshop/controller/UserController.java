@@ -2,6 +2,7 @@ package com.rober.bookshop.controller;
 
 import com.rober.bookshop.annotation.ApiMessage;
 import com.rober.bookshop.model.entity.User;
+import com.rober.bookshop.model.request.UserInfoRequestDTO;
 import com.rober.bookshop.model.request.UserRequestDTO;
 import com.rober.bookshop.model.response.ResultPaginationDTO;
 import com.rober.bookshop.model.response.UserResponseDTO;
@@ -45,6 +46,12 @@ public class UserController {
     @ApiMessage("Fetch all users")
     public ResponseEntity<ResultPaginationDTO> getAllUsers(@Filter Specification<User> spec, Pageable pageable) {
         return ResponseEntity.ok(this.userService.getAllUsers(spec, pageable));
+    }
+
+    @PutMapping("/users/info")
+    @ApiMessage("User update info")
+    public ResponseEntity<UserResponseDTO> userUpdateInfo(@Valid @RequestBody UserInfoRequestDTO reqDTO) {
+        return ResponseEntity.ok(this.userService.handleUpdateInfo(reqDTO));
     }
 
 }

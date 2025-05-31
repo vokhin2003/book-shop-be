@@ -80,9 +80,50 @@ public class PaymentService implements IPaymentService {
             throw new IdInvalidException("Payment amount does not match order total amount");
         }
 
-        // Tìm Transaction đã tạo
-        Transaction transaction = transactionRepository.findByOrder_IdAndStatus(dto.getOrderId(), TransactionStatus.PENDING)
-                .orElseThrow(() -> new IdInvalidException("No pending transaction found for order id = " + dto.getOrderId()));
+        // Lấy tất cả Transaction của Order
+        List<Transaction> transactions = transactionRepository.findByOrder_Id(dto.getOrderId());
+
+        // Kiểm tra đã có Transaction thành công chưa
+        if (transactions.stream().anyMatch(t -> t.getStatus() == TransactionStatus.SUCCESS)) {
+            throw new IdInvalidException("Order already paid successfully");
+        }
+
+        // Kiểm tra giới hạn 3 lần thanh toán
+        if (transactions.size() >= 3) {
+            // Tùy chọn: Tự động xóa đơn hàng hoặc yêu cầu xác nhận
+//            order.setStatus(OrderStatus.CANCELLED);
+//            orderRepository.save(order);
+            throw new IdInvalidException("Maximum 3 payment attempts reached. Order has been cancelled.");
+        }
+
+//        if (transactions.size() >= 3) {
+//            throw new IdInvalidException("Maximum 3 payment attempts reached. Please confirm to cancel the order.");
+//        }
+
+        Transaction transaction;
+
+        // Tìm Transaction PENDING (thanh toán lần đầu)
+        Optional<Transaction> pendingTransaction = transactions.stream()
+                .filter(t -> t.getStatus() == TransactionStatus.PENDING)
+                .findFirst();
+
+        if (pendingTransaction.isPresent()) {
+            // Thanh toán lần đầu: Sử dụng Transaction PENDING hiện có
+            transaction = pendingTransaction.get();
+        } else {
+            // Thanh toán lại: Tạo Transaction mới
+            transaction = new Transaction();
+            String transactionId = dto.getOrderId() + "_" + Instant.now().toEpochMilli();
+            transaction.setTransactionId(transactionId);
+            transaction.setAmount(dto.getAmount());
+            transaction.setPaymentMethod(dto.getPaymentMethod());
+            transaction.setStatus(TransactionStatus.PENDING);
+            transaction.setTransactionDate(Instant.now());
+            transaction.setOrder(order);
+            transaction.setOrderInfo(String.format("Payment for order with id %d. Total: %.2f VND",
+                    dto.getOrderId(), dto.getAmount()));
+            transactionRepository.save(transaction);
+        }
 
         PaymentResponseDTO result = new PaymentResponseDTO();
         result.setTransactionId(transaction.getTransactionId());
@@ -186,6 +227,18 @@ public class PaymentService implements IPaymentService {
             return result;
         }
 
+        // Kiểm tra Order không có Transaction thành công khác
+        List<Transaction> transactions = transactionRepository.findByOrder_Id(transaction.getOrder().getId());
+        if (transactions.stream().anyMatch(t -> t.getStatus() == TransactionStatus.SUCCESS && !t.getTransactionId().equals(transactionId))) {
+            transaction.setStatus(TransactionStatus.FAILED);
+            transaction.setResponseCode("99");
+            transaction.setTransactionDate(Instant.now());
+            transactionRepository.save(transaction);
+            result.setStatus(TransactionStatus.FAILED);
+            result.setMessage("Order already paid by another transaction");
+            return result;
+        }
+
         String responseCode = params.get("vnp_ResponseCode");
         if ("00".equals(responseCode)) {
             transaction.setStatus(TransactionStatus.SUCCESS);
@@ -214,8 +267,18 @@ public class PaymentService implements IPaymentService {
             transaction.setTransactionDate(Instant.now());
             transactionRepository.save(transaction);
 
+            // Kiểm tra số lần thanh toán
+            if (transactions.size() >= 3) {
+                Order order = transaction.getOrder();
+                order.setStatus(OrderStatus.CANCELLED);
+                orderRepository.save(order);
+                result.setMessage("Payment failed! Order cancelled due to 3 failed attempts.");
+            } else {
+                result.setMessage("Payment failed! Response code: " + responseCode);
+            }
+
             result.setStatus(TransactionStatus.FAILED);
-            result.setMessage("Payment failed! Response code: " + responseCode);
+//            result.setMessage("Payment failed! Response code: " + responseCode);
         }
 
         return result;
@@ -229,8 +292,14 @@ public class PaymentService implements IPaymentService {
         PaymentResultDTO result = new PaymentResultDTO();
         result.setTransactionId(transactionId);
         result.setStatus(transaction.getStatus());
+//        result.setMessage(transaction.getStatus() == TransactionStatus.SUCCESS
+//                ? "Payment successful"
+//                : "Payment status: " + transaction.getStatus());
+
         result.setMessage(transaction.getStatus() == TransactionStatus.SUCCESS
                 ? "Payment successful"
+                : transaction.getStatus() == TransactionStatus.FAILED && transaction.getOrder().getStatus() == OrderStatus.CANCELLED
+                ? "Payment failed! Order cancelled due to 3 failed attempts."
                 : "Payment status: " + transaction.getStatus());
         return result;
     }

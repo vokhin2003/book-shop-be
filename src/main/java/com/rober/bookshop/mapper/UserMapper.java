@@ -1,6 +1,7 @@
 package com.rober.bookshop.mapper;
 
 import com.rober.bookshop.model.entity.User;
+import com.rober.bookshop.model.request.UserInfoRequestDTO;
 import com.rober.bookshop.model.request.UserRequestDTO;
 import com.rober.bookshop.model.response.UserResponseDTO;
 import org.mapstruct.Mapper;
@@ -20,5 +21,8 @@ public interface UserMapper {
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "role", ignore = true)
     void updateUserFromDTO(UserRequestDTO dto, @MappingTarget User user);
+
+    @Mapping(target = "id", ignore = true)
+    void updateUserFromInfoDTO(UserInfoRequestDTO dto, @MappingTarget User user);
 
 }
