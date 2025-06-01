@@ -231,6 +231,7 @@ public class UserService implements IUserService {
             userLogin.setFullName(savedUser.getFullName());
             userLogin.setPhone(savedUser.getPhone());
             userLogin.setAddress(savedUser.getAddress());
+            userLogin.setAvatar(savedUser.getAvatar());
             userLogin.setRole(savedUser.getRole().getName());
             userLogin.setPermissions(savedUser.getRole().getPermissions());
 
@@ -383,6 +384,11 @@ public class UserService implements IUserService {
 
         user.setPassword(passwordEncoder.encode(reqDTO.getNewPassword()));
         userRepository.save(user);
+    }
+
+    @Override
+    public User getUserById(Long id) {
+        return this.userRepository.findById(id).orElse(null);
     }
 
 

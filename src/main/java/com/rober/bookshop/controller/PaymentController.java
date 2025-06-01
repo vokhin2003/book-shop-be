@@ -45,9 +45,13 @@ public class PaymentController {
     public ResponseEntity<Void> getPaymentResult(@RequestParam Map<String, String> params) {
         log.info(">>> check params: {}", params);
         PaymentResultDTO result = paymentService.handlePaymentResult(params);
-        String redirectUrl = result.getStatus() == TransactionStatus.SUCCESS
-                ? "http://localhost:3000/payment/return?transactionId=" + result.getTransactionId()
-                : "http://localhost:3000/payment/return?error=" + URLEncoder.encode(result.getMessage(), StandardCharsets.UTF_8);
+//        String redirectUrl = result.getStatus() == TransactionStatus.SUCCESS
+//                ? "http://localhost:3000/payment/return/" + result.getTransactionId()
+//                : "http://localhost:3000/payment/return?error=" + URLEncoder.encode(result.getMessage(), StandardCharsets.UTF_8);
+
+
+        String redirectUrl = "http://localhost:3000/payment/return/" + result.getTransactionId();
+
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header("Location", redirectUrl)
                 .build();

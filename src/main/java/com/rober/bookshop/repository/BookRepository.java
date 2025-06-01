@@ -17,4 +17,8 @@ public interface BookRepository extends JpaRepository<Book, Long>, JpaSpecificat
     @Query("UPDATE Book b SET b.quantity = :quantity WHERE b.id = :id")
     void updateQuantity(@Param("id") Long id, @Param("quantity") Integer quantity);
 
+    @Modifying
+    @Query("UPDATE Book b SET b.quantity = :quantity, b.sold = :sold WHERE b.id = :id")
+    void updateQuantityAndSold(@Param("id") Long id, @Param("quantity") Integer quantity, @Param("sold") Integer sold);
+
 }

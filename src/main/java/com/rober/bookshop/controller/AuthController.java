@@ -27,6 +27,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequiredArgsConstructor
@@ -53,11 +55,43 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.register(reqUser));
     }
 
+//    @GetMapping("/auth/verify")
+//    @ApiMessage("Verify account")
+//    public ResponseEntity<String> verifyUser(@RequestParam("token") String token) {
+//        this.userService.verifyUser(token);
+//        return ResponseEntity.ok("Account verified successfully. You can now log in.");
+//
+////        String redirectUrl = "http://localhost:3000/verify/return?status=success";
+////
+////        return ResponseEntity.status(HttpStatus.FOUND)
+////                .header("Location", redirectUrl)
+////                .build();
+//    }
+
     @GetMapping("/auth/verify")
     @ApiMessage("Verify account")
-    public ResponseEntity<String> verifyUser(@RequestParam("token") String token) {
-        this.userService.verifyUser(token);
-        return ResponseEntity.ok("Account verified successfully. You can now log in.");
+    public ResponseEntity<Void> verifyUser(@RequestParam("token") String token) {
+        try {
+            this.userService.verifyUser(token);
+            String redirectUrl = "http://localhost:3000/verify/return?status=success";
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", redirectUrl)
+                    .build();
+        } catch (IdInvalidException e) {
+            log.error("Xác minh thất bại: {}", e.getMessage());
+            String redirectUrl = "http://localhost:3000/verify/return?status=error&message="
+                    + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", redirectUrl)
+                    .build();
+        } catch (Exception e) {
+            log.error("Lỗi không mong muốn khi xác minh: {}", e.getMessage());
+            String redirectUrl = "http://localhost:3000/verify/return?status=error&message="
+                    + URLEncoder.encode("Đã xảy ra lỗi không mong muốn", StandardCharsets.UTF_8);
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header("Location", redirectUrl)
+                    .build();
+        }
     }
 
     @PostMapping("/auth/login")

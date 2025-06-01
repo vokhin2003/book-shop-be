@@ -29,5 +29,6 @@ public interface IUserService {
     void handleUserLogout();
     User getUserLogin();
     void handleChangePassword(ChangePasswordRequestDTO reqDTO);
+    User getUserById(Long id);
 
 }

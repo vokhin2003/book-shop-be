@@ -4,6 +4,7 @@ import com.rober.bookshop.enums.OrderStatus;
 import com.rober.bookshop.model.entity.Order;
 import com.rober.bookshop.model.entity.User;
 import com.rober.bookshop.model.request.CreateOrderRequestDTO;
+import com.rober.bookshop.model.request.UpdateOrderRequestDTO;
 import com.rober.bookshop.model.response.CancelOrderResponseDTO;
 import com.rober.bookshop.model.response.OrderResponseDTO;
 import com.rober.bookshop.model.response.ResultPaginationDTO;
@@ -19,5 +20,11 @@ public interface IOrderService {
     OrderResponseDTO fetchOrderById(Long id);
 
     CancelOrderResponseDTO handleCancelOrder(Long orderId);
+
+    ResultPaginationDTO getAll(Specification<Order> spec, Pageable pageable);
+
+//    OrderResponseDTO handleCreateOrder(CreateOrderRequestDTO reqDTO);
+
+    OrderResponseDTO handleUpdateOrder(Long id, UpdateOrderRequestDTO reqDTO);
 
 }

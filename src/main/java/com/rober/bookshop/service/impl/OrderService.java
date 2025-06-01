@@ -10,6 +10,7 @@ import com.rober.bookshop.mapper.OrderMapper;
 import com.rober.bookshop.model.entity.*;
 import com.rober.bookshop.model.request.CreateOrderRequestDTO;
 import com.rober.bookshop.model.request.OrderItemRequestDTO;
+import com.rober.bookshop.model.request.UpdateOrderRequestDTO;
 import com.rober.bookshop.model.response.BookResponseDTO;
 import com.rober.bookshop.model.response.CancelOrderResponseDTO;
 import com.rober.bookshop.model.response.OrderResponseDTO;
@@ -36,6 +37,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +51,7 @@ public class OrderService implements IOrderService {
     private final IUserService userService;
     private final FilterBuilder filterBuilder;
     private final FilterSpecificationConverter filterSpecificationConverter;
+
 
     @Override
     @Transactional
@@ -84,8 +87,13 @@ public class OrderService implements IOrderService {
 //            book.setQuantity(book.getQuantity() - item.getQuantity());
 //            bookRepository.save(book);
 
-            bookRepository.updateQuantity(book.getId(), book.getQuantity() - item.getQuantity());
+//            bookRepository.updateQuantity(book.getId(), book.getQuantity() - item.getQuantity());
+
+            bookRepository.updateQuantityAndSold(book.getId(),
+                    book.getQuantity() - item.getQuantity(),
+                    book.getSold() + item.getQuantity());
         }
+
 
         // Tạo Order
         Order order = this.orderMapper.toOrder(reqDTO);
@@ -176,11 +184,44 @@ public class OrderService implements IOrderService {
     }
 
     @Override
+    @Transactional
     public CancelOrderResponseDTO handleCancelOrder(Long orderId) {
         Order canceledOrder = this.orderRepository.findById(orderId).orElseThrow(() -> new IdInvalidException("Order with id = " + orderId + " not found"));
+
         if (canceledOrder.getStatus() != OrderStatus.PENDING) {
             throw new BadRequestException("The order cannot be canceled because it is being processed");
         }
+
+        // Duyệt qua các OrderItem để cập nhật quantity và sold của Book
+        List<OrderItem> orderItems = canceledOrder.getOrderItems();
+        for (OrderItem item : orderItems) {
+            Book book = item.getBook();
+            // Kiểm tra sold để tránh giá trị âm
+            if (book.getSold() < item.getQuantity()) {
+                throw new BadRequestException("Cannot reduce sold quantity for book: " + book.getId());
+            }
+            // Cập nhật quantity (tăng lại) và sold (giảm đi)
+            bookRepository.updateQuantityAndSold(
+                    book.getId(),
+                    book.getQuantity() + item.getQuantity(),
+                    book.getSold() - item.getQuantity()
+            );
+        }
+
+        // Cập nhật trạng thái Transaction (nếu có)
+//        for (Transaction transaction : canceledOrder.getTransactions()) {
+//            if (transaction.getStatus() == TransactionStatus.PENDING) {
+//                transaction.setStatus(TransactionStatus.CANCELLED);
+//                transactionRepository.save(transaction);
+//            }
+//        }
+
+        // Cập nhật trạng thái Transaction chỉ cho các Transaction có status = PENDING
+        List<Transaction> transactionsToUpdate = canceledOrder.getTransactions().stream()
+                .filter(transaction -> transaction.getStatus() == TransactionStatus.PENDING)
+                .peek(transaction -> transaction.setStatus(TransactionStatus.CANCELLED))
+                .collect(Collectors.toList());
+        transactionRepository.saveAll(transactionsToUpdate);
 
         canceledOrder.setStatus(OrderStatus.CANCELLED);
         this.orderRepository.save(canceledOrder);
@@ -190,4 +231,158 @@ public class OrderService implements IOrderService {
 
         return res;
     }
+
+    @Override
+    public ResultPaginationDTO getAll(Specification<Order> spec, Pageable pageable) {
+        Page<Order> orderPage = this.orderRepository.findAll(spec, pageable);
+        ResultPaginationDTO res = new ResultPaginationDTO();
+        ResultPaginationDTO.Meta meta = new ResultPaginationDTO.Meta();
+
+        meta.setCurrent(pageable.getPageNumber() + 1);
+        meta.setPageSize(pageable.getPageSize());
+
+        meta.setPages(orderPage.getTotalPages());
+        meta.setTotal(orderPage.getTotalElements());
+
+        res.setMeta(meta);
+
+        List<OrderResponseDTO> listOrder = orderPage.getContent().stream().map(this.orderMapper::toResponseDTO).toList();
+
+        res.setResult(listOrder);
+        return res;
+    }
+
+    @Override
+    @Transactional
+    public OrderResponseDTO handleUpdateOrder(Long id, UpdateOrderRequestDTO reqDTO) {
+        Order updatedOrder = this.orderRepository.findById(id).orElseThrow(() -> new IdInvalidException("Order with id = " + id + " not found"));
+
+        if (updatedOrder.getStatus() == OrderStatus.DELIVERED) {
+            throw new BadRequestException("This order cannot be updated because it is delivered");
+        }
+
+        if (reqDTO.getStatus() == OrderStatus.PENDING) {
+            if (updatedOrder.getPaymentMethod() != PaymentMethod.COD) {
+                throw new BadRequestException("This order cannot be updated because it has been paid.");
+            }
+        }
+
+        if (updatedOrder.getStatus() == OrderStatus.CANCELLED && reqDTO.getStatus() != OrderStatus.CANCELLED) {
+            // Duyệt qua các OrderItem để cập nhật quantity và sold của Book
+            List<OrderItem> orderItems = updatedOrder.getOrderItems();
+            for (OrderItem item : orderItems) {
+                Book book = item.getBook();
+                // Kiểm tra sold để tránh giá trị âm
+                if (book.getSold() < item.getQuantity()) {
+                    throw new BadRequestException("Cannot reduce sold quantity for book: " + book.getId());
+                }
+                // Cập nhật quantity (tăng lại) và sold (giảm đi)
+                bookRepository.updateQuantityAndSold(
+                        book.getId(),
+                        book.getQuantity() - item.getQuantity(),
+                        book.getSold() + item.getQuantity()
+                );
+            }
+        }
+
+        if (updatedOrder.getStatus() != OrderStatus.CANCELLED && reqDTO.getStatus() == OrderStatus.CANCELLED) {
+// Duyệt qua các OrderItem để cập nhật quantity và sold của Book
+            List<OrderItem> orderItems = updatedOrder.getOrderItems();
+            for (OrderItem item : orderItems) {
+                Book book = item.getBook();
+                // Kiểm tra sold để tránh giá trị âm
+                if (book.getSold() < item.getQuantity()) {
+                    throw new BadRequestException("Cannot reduce sold quantity for book: " + book.getId());
+                }
+                // Cập nhật quantity (tăng lại) và sold (giảm đi)
+                bookRepository.updateQuantityAndSold(
+                        book.getId(),
+                        book.getQuantity() + item.getQuantity(),
+                        book.getSold() - item.getQuantity()
+                );
+            }
+        }
+
+        this.orderMapper.updateOrderFromDTO(reqDTO, updatedOrder);
+
+        return this.orderMapper.toResponseDTO(this.orderRepository.save(updatedOrder));
+    }
+
+//    @Override
+//    public OrderResponseDTO handleCreateOrder(CreateOrderRequestDTO reqDTO) {
+//
+//        if (reqDTO.getUserId() == null) throw new IdInvalidException("User id is invalid");
+//        User user = this.userService.getUserById(reqDTO.getUserId());
+//        if (user == null) throw new IdInvalidException("User not found in database");
+//
+//        List<OrderItem> orderItems = new ArrayList<>();
+//        BigDecimal totalPrice = BigDecimal.ZERO;
+//
+//        for (OrderItemRequestDTO item : reqDTO.getItems()) {
+//            Book book = bookRepository.findById(item.getBookId())
+//                    .orElseThrow(() -> new IdInvalidException("Book with id = " + item.getBookId() + " not found"));
+//            if (book.getQuantity() < item.getQuantity()) {
+//                throw new InputInvalidException("Insufficient stock for book: " + book.getTitle());
+//            }
+//
+//            // create OrderItem
+//            OrderItem orderItem = new OrderItem();
+//            orderItem.setBook(book);
+//            orderItem.setQuantity(item.getQuantity());
+//
+//
+//            // Tính tổng giá (áp dụng discount nếu có)
+//            BigDecimal itemPrice = book.getPrice()
+//                    .multiply(BigDecimal.valueOf(100 - book.getDiscount()).divide(BigDecimal.valueOf(100)));
+//
+//            totalPrice = totalPrice.add(itemPrice.multiply(BigDecimal.valueOf(item.getQuantity())) );
+//
+//            orderItem.setPrice(itemPrice);
+//
+//            orderItems.add(orderItem);
+//
+//            // Cập nhật tồn kho
+////            book.setQuantity(book.getQuantity() - item.getQuantity());
+////            bookRepository.save(book);
+//
+////            bookRepository.updateQuantity(book.getId(), book.getQuantity() - item.getQuantity());
+//
+//            bookRepository.updateQuantityAndSold(book.getId(),
+//                    book.getQuantity() - item.getQuantity(),
+//                    book.getSold() + item.getQuantity());
+//        }
+//
+//
+//        // Tạo Order
+//        Order order = this.orderMapper.toOrder(reqDTO);
+//        order.setUser(user);
+//        order.setOrderItems(orderItems);
+//        order.setTotalAmount(totalPrice);
+//        order.setStatus(OrderStatus.PENDING);
+//
+//        // Liên kết OrderItem với Order
+//        orderItems.forEach(item -> item.setOrder(order));
+//        this.orderItemRepository.saveAll(orderItems);
+//
+//        Order savedOrder = this.orderRepository.save(order);
+//
+//        // Tạo Transaction
+//        Transaction transaction = new Transaction();
+//        String transactionId = reqDTO.getPaymentMethod() == PaymentMethod.COD
+//                ? "COD_" + savedOrder.getId()
+//                : savedOrder.getId() + "_" + Instant.now().toEpochMilli();
+//        transaction.setTransactionId(transactionId);
+//        transaction.setAmount(totalPrice);
+//        transaction.setPaymentMethod(reqDTO.getPaymentMethod());
+//        transaction.setStatus(TransactionStatus.PENDING);
+//        transaction.setTransactionDate(Instant.now());
+//        transaction.setOrder(savedOrder);
+////        transaction.setOrderInfo("Payment for order with id " + savedOrder.getId() + ". Total: " + totalPrice + " VND");
+//        transaction.setOrderInfo(String.format("Payment for order with id %d. Total: %.2f VND",
+//                savedOrder.getId(), totalPrice));
+//
+//        transactionRepository.save(transaction);
+//
+//        return orderMapper.toResponseDTO(savedOrder);
+//    }
 }
