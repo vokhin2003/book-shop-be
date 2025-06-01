@@ -385,5 +385,11 @@ public class UserService implements IUserService {
         userRepository.save(user);
     }
 
+    @Override
+    public User getUserById(Long id) {
+        User userDB = userRepository.findById(id).orElseThrow(() -> new IdInvalidException("User with id = " + id + " not found"));
+        return userDB;
+    }
+
 
 }
