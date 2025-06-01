@@ -64,7 +64,8 @@ public class EmailService implements IEmailService {
     public void sendVerificationEmail(String toEmail, String fullName, String verifyLink) {
         try {
             // Lấy URL logo từ cloud
-            String logoUrl = "https://res.cloudinary.com/dcyexzesw/image/upload/v1746435662/28f29413-6909-4be5-8a87-b32a604a8c34_store2.jpg";
+//            String logoUrl = "https://res.cloudinary.com/dcyexzesw/image/upload/v1746435662/28f29413-6909-4be5-8a87-b32a604a8c34_store2.jpg";
+            String logoUrl = "https://res.cloudinary.com/dtfe2e0ey/image/upload/v1748637153/logo_igayak.png";
 
             // Tạo email
             Email from = new Email(fromMail, "BookShop");
