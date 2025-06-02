@@ -14,28 +14,34 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Tag(name = "Permission")
 public class PermissionController {
 
     private final IPermissionService permissionService;
 
     @PostMapping("/permissions")
     @ApiMessage("Create a permission")
+    @Operation(summary = "Create a permission", description = "Create a new permission and return the created permission details.")
     public ResponseEntity<PermissionResponseDTO> create(@Valid @RequestBody PermissionRequestDTO reqDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.permissionService.create(reqDTO));
     }
 
     @PutMapping("/permissions/{id}")
     @ApiMessage("Update a permission")
+    @Operation(summary = "Update a permission", description = "Update an existing permission by id and return the updated permission details.")
     public ResponseEntity<PermissionResponseDTO> update(@PathVariable Long id, @Valid @RequestBody PermissionRequestDTO reqDTO) {
         return ResponseEntity.ok(this.permissionService.update(id, reqDTO));
     }
 
     @DeleteMapping("/permissions/{id}")
     @ApiMessage("Delete a permission by id")
+    @Operation(summary = "Delete a permission", description = "Delete a permission by id.")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         this.permissionService.delete(id);
         return ResponseEntity.ok(null);
@@ -43,6 +49,7 @@ public class PermissionController {
 
     @GetMapping("/permissions")
     @ApiMessage("Get permission with pagination")
+    @Operation(summary = "Get permissions with pagination", description = "Get a paginated list of permissions with optional filtering.")
     public ResponseEntity<ResultPaginationDTO> getAll(@Filter Specification<Permission> spec, Pageable pageable) {
         return ResponseEntity.ok(this.permissionService.getAll(spec, pageable));
     }

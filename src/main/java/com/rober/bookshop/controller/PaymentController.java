@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +29,7 @@ import java.util.Map;
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Payment")
 public class PaymentController {
 
     private final IPaymentService paymentService;
@@ -35,7 +38,7 @@ public class PaymentController {
     private final IUserService userService;
 
     @PostMapping("/payments")
-//    @Operation(summary = "Create payment URL", description = "Generate a payment URL for the given payment request.")
+    @Operation(summary = "Create payment URL", description = "Generate a payment URL for the given payment request.")
     public ResponseEntity<PaymentResponseDTO> createPaymentUrl(
             @Valid @RequestBody PaymentRequestDTO dto,
             HttpServletRequest request) {
@@ -50,6 +53,7 @@ public class PaymentController {
 
     @GetMapping("/payments/vnpay-payment-return")
     @ApiMessage("Handle VNPay payment result")
+    @Operation(summary = "Handle VNPay payment result", description = "Process the payment result returned by VNPay and redirect to the frontend.")
     public ResponseEntity<Void> getPaymentResult(@RequestParam Map<String, String> params) {
         log.info(">>> check params: {}", params);
         PaymentResultDTO result = paymentService.handlePaymentResult(params);
@@ -81,6 +85,7 @@ public class PaymentController {
 
     @GetMapping("/transactions/{transactionId}")
     @ApiMessage("Get transaction status")
+    @Operation(summary = "Get transaction status", description = "Get the status of a transaction by its transaction id.")
     public ResponseEntity<PaymentResultDTO> getTransactionStatus(@PathVariable String transactionId) {
         return ResponseEntity.ok(paymentService.getTransactionStatus(transactionId));
     }
