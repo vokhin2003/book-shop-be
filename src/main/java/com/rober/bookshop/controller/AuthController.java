@@ -25,6 +25,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -34,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
 @Slf4j
+@Tag(name = "Auth")
 public class AuthController {
 
     private final IEmailService emailService;
@@ -51,6 +54,7 @@ public class AuthController {
 
     @PostMapping("/auth/register")
     @ApiMessage("Register user")
+    @Operation(summary = "Register user", description = "Register a new user and return the registration details.")
     public ResponseEntity<RegisterResponseDTO> register(@Valid @RequestBody RegisterRequestDTO reqUser) {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.register(reqUser));
     }
@@ -70,6 +74,7 @@ public class AuthController {
 
     @GetMapping("/auth/verify")
     @ApiMessage("Verify account")
+    @Operation(summary = "Verify account", description = "Verify a user's account using a token and redirect to the frontend.")
     public ResponseEntity<Void> verifyUser(@RequestParam("token") String token) {
         try {
             this.userService.verifyUser(token);
@@ -96,6 +101,7 @@ public class AuthController {
 
     @PostMapping("/auth/login")
     @ApiMessage("User login")
+    @Operation(summary = "User login", description = "Authenticate a user and return login details with a refresh token.")
     public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO reqLoginDTO) {
         LoginResponseDTO res = this.userService.handleUserLogin(reqLoginDTO);
 
@@ -120,6 +126,7 @@ public class AuthController {
 
     @GetMapping("/auth/account")
     @ApiMessage("Get user information")
+    @Operation(summary = "Get user information", description = "Get information of the currently logged-in user.")
     public ResponseEntity<LoginResponseDTO.UserGetAccount> getAccount() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         authentication.getAuthorities().forEach(grantedAuthority -> log.info("Authority: {}", grantedAuthority));
@@ -128,6 +135,7 @@ public class AuthController {
 
     @GetMapping("/auth/refresh")
     @ApiMessage("Get user by refresh token")
+    @Operation(summary = "Get user by refresh token", description = "Get user information using a refresh token and return a new refresh token.")
     public ResponseEntity<LoginResponseDTO> getRefreshToken(@CookieValue(name = "refresh_token") String refreshToken) {
         LoginResponseDTO res = this.userService.fetchUserByRefreshToken(refreshToken);
 
@@ -150,6 +158,7 @@ public class AuthController {
 
     @PostMapping("/auth/logout")
     @ApiMessage("User logout")
+    @Operation(summary = "User logout", description = "Logout the current user and clear the refresh token.")
     public ResponseEntity<Void> logout() {
         this.userService.handleUserLogout();
         ResponseCookie deleteSpringCookie = ResponseCookie
@@ -164,6 +173,7 @@ public class AuthController {
 
     @PostMapping("/auth/change-password")
     @ApiMessage("User change password")
+    @Operation(summary = "Change password", description = "Change the password of the currently logged-in user.")
     public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequestDTO reqDTO) {
         this.userService.handleChangePassword(reqDTO);
         return ResponseEntity.ok(null);

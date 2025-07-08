@@ -388,7 +388,10 @@ public class UserService implements IUserService {
 
     @Override
     public User getUserById(Long id) {
-        return this.userRepository.findById(id).orElse(null);
+
+        User userDB = userRepository.findById(id).orElseThrow(() -> new IdInvalidException("User with id = " + id + " not found"));
+        return userDB;
+
     }
 
 
