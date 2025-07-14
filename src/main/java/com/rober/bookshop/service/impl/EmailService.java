@@ -98,6 +98,8 @@ public class EmailService implements IEmailService {
             request.setMethod(Method.POST);
             request.setEndpoint("mail/send");
             request.setBody(mail.build());
+
+            request.getHeaders().put("Connection", "close");
             Response response = sendGrid.api(request);
 
             log.debug("SendGrid response: Status={}, Body={}", response.getStatusCode(), response.getBody());
@@ -156,6 +158,9 @@ public class EmailService implements IEmailService {
             request.setMethod(Method.POST);
             request.setEndpoint("mail/send");
             request.setBody(mail.build());
+
+            request.getHeaders().put("Connection", "close");
+
             Response response = sendGrid.api(request);
 
             log.debug("SendGrid response: Status={}, Body={}", response.getStatusCode(), response.getBody());
