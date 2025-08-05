@@ -28,7 +28,7 @@ public class CategoryController {
 
     @PostMapping("/categories")
     @ApiMessage("Create a category")
-    @PreAuthorize("hasAuthority('POST:/categories')")
+    @PreAuthorize("hasAuthority('POST:/api/v1/categories')")
     @Operation(summary = "Create a category", description = "Create a new category and return the created category details.")
     public ResponseEntity<CategoryResponseDTO> create(@Valid @RequestBody CategoryRequestDTO reqDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.categoryService.create(reqDTO));
@@ -36,7 +36,7 @@ public class CategoryController {
 
     @PutMapping("/categories/{id}")
     @ApiMessage("Update a category")
-    @PreAuthorize("hasAuthority('PUT:/categories')")
+    @PreAuthorize("hasAuthority('PUT:/api/v1/categories/{id}')")
     @Operation(summary = "Update a category", description = "Update an existing category by id and return the updated category details.")
     public ResponseEntity<CategoryResponseDTO> update(@PathVariable("id") Long id, @Valid @RequestBody CategoryRequestDTO reqDTO) {
         return ResponseEntity.ok(this.categoryService.update(id, reqDTO));
@@ -44,7 +44,7 @@ public class CategoryController {
 
     @DeleteMapping("/categories/{id}")
     @ApiMessage("Delete a category")
-    @PreAuthorize("hasAuthority('DELETE:/categories/{id}')")
+    @PreAuthorize("hasAuthority('DELETE:/api/v1/categories/{id}')")
     @Operation(summary = "Delete a category", description = "Delete a category by id.")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         this.categoryService.delete(id);
