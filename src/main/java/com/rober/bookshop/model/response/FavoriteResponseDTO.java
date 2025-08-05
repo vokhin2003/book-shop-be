@@ -9,5 +9,5 @@ import lombok.Setter;
 public class FavoriteResponseDTO {
     private Long id;
     private Long userId;
-    private Long bookId;
+    private BookResponseDTO book;
 }
