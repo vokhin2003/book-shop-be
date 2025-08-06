@@ -9,16 +9,15 @@ import com.rober.bookshop.exception.InputInvalidException;
 import com.rober.bookshop.mapper.OrderMapper;
 import com.rober.bookshop.model.entity.*;
 import com.rober.bookshop.model.request.CreateOrderRequestDTO;
+import com.rober.bookshop.model.request.NotificationRequestDTO;
 import com.rober.bookshop.model.request.OrderItemRequestDTO;
 import com.rober.bookshop.model.request.UpdateOrderRequestDTO;
 import com.rober.bookshop.model.response.BookResponseDTO;
 import com.rober.bookshop.model.response.CancelOrderResponseDTO;
 import com.rober.bookshop.model.response.OrderResponseDTO;
 import com.rober.bookshop.model.response.ResultPaginationDTO;
-import com.rober.bookshop.repository.BookRepository;
-import com.rober.bookshop.repository.OrderItemRepository;
-import com.rober.bookshop.repository.OrderRepository;
-import com.rober.bookshop.repository.TransactionRepository;
+import com.rober.bookshop.repository.*;
+import com.rober.bookshop.service.IFirebaseMessagingService;
 import com.rober.bookshop.service.IOrderService;
 import com.rober.bookshop.service.IUserService;
 import com.turkraft.springfilter.builder.FilterBuilder;
@@ -26,6 +25,7 @@ import com.turkraft.springfilter.converter.FilterSpecificationConverter;
 import com.turkraft.springfilter.parser.node.FilterNode;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -36,11 +36,13 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService implements IOrderService {
 
     private final OrderRepository orderRepository;
@@ -51,11 +53,13 @@ public class OrderService implements IOrderService {
     private final IUserService userService;
     private final FilterBuilder filterBuilder;
     private final FilterSpecificationConverter filterSpecificationConverter;
+    private final UserDeviceTokenRepository userDeviceTokenRepository;
+    private final IFirebaseMessagingService firebaseMessagingService;
 
 
     @Override
     @Transactional
-    public OrderResponseDTO handleCreateOrder(CreateOrderRequestDTO reqDTO, User user) {
+    public OrderResponseDTO handleCreateOrder(CreateOrderRequestDTO reqDTO, User user, String deviceType) {
 
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalPrice = BigDecimal.ZERO;
@@ -110,9 +114,14 @@ public class OrderService implements IOrderService {
 
         // Tạo Transaction
         Transaction transaction = new Transaction();
+
+//        String transactionId = reqDTO.getPaymentMethod() == PaymentMethod.COD
+//                ? "COD_" + savedOrder.getId()
+//                : savedOrder.getId() + "_" + Instant.now().toEpochMilli();
+
         String transactionId = reqDTO.getPaymentMethod() == PaymentMethod.COD
                 ? "COD_" + savedOrder.getId()
-                : savedOrder.getId() + "_" + Instant.now().toEpochMilli();
+                : savedOrder.getId() + "_" + deviceType + "_" + Instant.now().toEpochMilli();
         transaction.setTransactionId(transactionId);
         transaction.setAmount(totalPrice);
         transaction.setPaymentMethod(reqDTO.getPaymentMethod());
@@ -303,9 +312,52 @@ public class OrderService implements IOrderService {
             }
         }
 
+        if (reqDTO.getStatus() != updatedOrder.getStatus()) {
+            List<UserDeviceToken> tokens = userDeviceTokenRepository.findByUserIdAndDeviceTypeAndIsActiveTrue(updatedOrder.getUser().getId(), "WEB");
+            for (UserDeviceToken token : tokens) {
+                NotificationRequestDTO notification = new NotificationRequestDTO();
+                notification.setTitle("Cập nhật trạng thái đơn hàng");
+                // Sử dụng mapping tiếng Việt cho trạng thái
+                notification.setBody("Đơn hàng #" + id + " đã được cập nhật thành: " + getOrderStatusVi(reqDTO.getStatus()));
+                notification.setDeviceToken(token.getDeviceToken());
+                // Lấy ảnh bìa sách đầu tiên nếu có, nếu không thì dùng logo shop
+                String imageUrl = null;
+                if (updatedOrder.getOrderItems() != null && !updatedOrder.getOrderItems().isEmpty()) {
+                    imageUrl = updatedOrder.getOrderItems().get(0).getBook().getThumbnail();
+                }
+                if (imageUrl == null || imageUrl.isEmpty()) {
+                    imageUrl = "https://camo.githubusercontent.com/a91aaa1d350e2c2450fb563fed4a71039eb8841c3225afc6931a990a4f472bb0/68747470733a2f2f66697265626173652e676f6f676c652e636f6d2f696d616765732f6272616e642d67756964656c696e65732f6c6f676f2d6275696c745f77686974652e706e67";
+                }
+                notification.setImage(imageUrl);
+                // Thêm url vào data để FE redirect khi click
+                notification.setData(Map.of(
+                    "orderId", id.toString(),
+                    "url", "http://localhost:3000/order/detail/" + id
+                ));
+                try {
+                    firebaseMessagingService.sendNotificationByToken(notification);
+                    log.info("Notification sent to token: {}", token.getDeviceToken());
+                } catch (Exception e) {
+                    log.error("Failed to send notification to token: {}. Error: {}", token.getDeviceToken(), e.getMessage());
+                }
+            }
+        }
+
         this.orderMapper.updateOrderFromDTO(reqDTO, updatedOrder);
 
         return this.orderMapper.toResponseDTO(this.orderRepository.save(updatedOrder));
+    }
+
+    // Thêm hàm mapping OrderStatus sang tiếng Việt
+    private String getOrderStatusVi(OrderStatus status) {
+        return switch (status) {
+            case PENDING -> "Chờ xác nhận";
+            case CONFIRMED -> "Đã xác nhận";
+            case SHIPPING -> "Đang giao hàng";
+            case DELIVERED -> "Đã giao hàng";
+            case CANCELLED -> "Đã huỷ";
+            default -> status.name();
+        };
     }
 
 //    @Override

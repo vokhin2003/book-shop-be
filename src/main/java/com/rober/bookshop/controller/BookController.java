@@ -31,7 +31,7 @@ public class BookController {
     @PostMapping("/books")
     @ApiMessage("Create a book")
     @Operation(summary = "Create a book", description = "Create a new book and return the created book details.")
-    @PreAuthorize("hasAuthority('POST:/books')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BookResponseDTO> create(@Valid @RequestBody BookRequestDTO reqDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(this.bookService.createBook(reqDTO));
     }
@@ -44,7 +44,7 @@ public class BookController {
 
     @PutMapping("/books/{id}")
     @ApiMessage("Update a book")
-    @PreAuthorize("hasAuthority('PUT:/books')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update a book", description = "Update an existing book by id and return the updated book details.")
     public ResponseEntity<BookResponseDTO> update(
             @PathVariable("id") Long id,
@@ -55,6 +55,7 @@ public class BookController {
 
     @DeleteMapping("/books/{id}")
     @ApiMessage("Delete a book by id")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete a book", description = "Delete a book by id.")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         this.bookService.deleteBook(id);

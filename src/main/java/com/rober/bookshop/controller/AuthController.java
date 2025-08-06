@@ -129,7 +129,7 @@ public class AuthController {
     @Operation(summary = "Get user information", description = "Get information of the currently logged-in user.")
     public ResponseEntity<LoginResponseDTO.UserGetAccount> getAccount() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        authentication.getAuthorities().forEach(grantedAuthority -> log.info("Authority: {}", grantedAuthority));
+//        authentication.getAuthorities().forEach(grantedAuthority -> log.info("Authority: {}", grantedAuthority));
         return ResponseEntity.ok(this.userService.fetchAccount());
     }
 
