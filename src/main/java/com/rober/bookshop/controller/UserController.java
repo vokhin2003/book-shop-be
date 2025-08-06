@@ -2,10 +2,12 @@ package com.rober.bookshop.controller;
 
 import com.rober.bookshop.annotation.ApiMessage;
 import com.rober.bookshop.model.entity.User;
+import com.rober.bookshop.model.request.DeviceTokenRequestDTO;
 import com.rober.bookshop.model.request.UserInfoRequestDTO;
 import com.rober.bookshop.model.request.UserRequestDTO;
 import com.rober.bookshop.model.response.ResultPaginationDTO;
 import com.rober.bookshop.model.response.UserResponseDTO;
+import com.rober.bookshop.service.IUserDeviceTokenService;
 import com.rober.bookshop.service.IUserService;
 import com.turkraft.springfilter.boot.Filter;
 import jakarta.validation.Valid;
@@ -25,6 +27,7 @@ import io.swagger.v3.oas.annotations.Operation;
 public class UserController {
 
     private final IUserService userService;
+    private final IUserDeviceTokenService userDeviceTokenService;
 
     @PostMapping("/users")
     @ApiMessage("Create a user")
@@ -62,4 +65,17 @@ public class UserController {
         return ResponseEntity.ok(this.userService.handleUpdateInfo(reqDTO));
     }
 
+    @PostMapping("/users/device-token")
+    @ApiMessage("Save user device token")
+    public ResponseEntity<Void> saveDeviceToken(@RequestBody @Valid DeviceTokenRequestDTO request) {
+        this.userDeviceTokenService.saveDeviceToken(request);
+        return ResponseEntity.ok(null);
+    }
+
+    @PostMapping("/users/remove-device-token")
+    @ApiMessage("Remove user device token")
+    public ResponseEntity<Void> removeDeviceToken(@RequestBody @Valid DeviceTokenRequestDTO request) {
+        this.userDeviceTokenService.removeDeviceToken(request);
+        return ResponseEntity.ok(null);
+    }
 }
