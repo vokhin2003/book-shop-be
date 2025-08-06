@@ -46,4 +46,10 @@ public class User extends Base {
     @OneToMany(mappedBy = "user")
     private List<Token> tokens;
 
+    @OneToMany(mappedBy = "user")
+    private List<UserDeviceToken> userDeviceTokens;
+
+    @OneToMany(mappedBy = "user")
+    private List<Favorite> favorites;
+
 }

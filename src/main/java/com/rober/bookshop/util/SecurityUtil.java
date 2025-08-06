@@ -53,15 +53,11 @@ public class SecurityUtil {
         Instant now = Instant.now();
         Instant validity = now.plus(this.accessTokenExpiration, ChronoUnit.SECONDS);
 
-        //hard code permission (for testing)
-        List<String> authorities = new ArrayList<>();
-
+        // Lấy vai trò của người dùng
+        String role = "ROLE_USER"; // Vai trò mặc định
         User user = this.userRepository.findByEmail(email);
-
-//        User user = this.userService.handleGetUserByUsername(email);
         if (user != null && user.getRole() != null) {
-            Role role = user.getRole();
-            authorities = role.getPermissions().stream().map(permission -> permission.getMethod().toUpperCase() + ":" + permission.getPath()).collect(Collectors.toList());
+            role = "ROLE_" + user.getRole().getName().toUpperCase(); // Ví dụ: ROLE_ADMIN
         }
 
         // @formatter:off
@@ -70,7 +66,7 @@ public class SecurityUtil {
                 .expiresAt(validity)
                 .subject(email)
                 .claim("user", userToken)
-                .claim("authorities", authorities)
+                .claim("roles", List.of(role))
                 .build();
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
         return this.jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader,

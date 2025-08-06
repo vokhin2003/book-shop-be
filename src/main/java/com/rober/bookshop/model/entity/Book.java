@@ -55,4 +55,7 @@ public class Book extends Base {
     private String publisher;
     private Integer pageCount;
     private String coverType;
+
+    @OneToMany(mappedBy = "book")
+    private List<Favorite> favorites;
 }

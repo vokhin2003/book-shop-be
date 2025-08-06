@@ -10,7 +10,7 @@ import java.util.Map;
 
 public interface IPaymentService {
 
-    PaymentResponseDTO handleCreatePaymentUrl(@Valid PaymentRequestDTO dto, HttpServletRequest request);
+    PaymentResponseDTO handleCreatePaymentUrl(@Valid PaymentRequestDTO dto, HttpServletRequest request, String deviceType);
 
     PaymentResultDTO handlePaymentResult(Map<String, String> params);
     PaymentResultDTO getTransactionStatus(String transactionId);
