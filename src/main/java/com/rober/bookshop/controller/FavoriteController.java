@@ -40,11 +40,11 @@ public class FavoriteController {
         return ResponseEntity.status(HttpStatus.OK).body(this.favoriteService.deleteFavorite(id));
     }
 
-    @GetMapping("/favorites-user-book")
+    @GetMapping("/favorites-user-book/{bookId}")
     @ApiMessage("Got favorite by user and book")
     @Operation(summary = "Get a favorite", description = "Get a favorite by user id and book id.")
-    public ResponseEntity<FavoriteResponseDTO> getByUserAndBook(@Valid @RequestBody FavoriteRequestDTO reqDTO) {
-        return ResponseEntity.status(HttpStatus.OK).body(this.favoriteService.getByUserAndBook(reqDTO));
+    public ResponseEntity<FavoriteResponseDTO> getByUserAndBook(@PathVariable("bookId") Long bookId) {
+        return ResponseEntity.status(HttpStatus.OK).body(this.favoriteService.getByUserAndBook(bookId));
     }
 
     @GetMapping("/favorites")

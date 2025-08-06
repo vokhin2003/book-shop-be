@@ -57,9 +57,10 @@ public class FavoriteService implements IFavoriteService {
     }
 
     @Override
-    public FavoriteResponseDTO getByUserAndBook(FavoriteRequestDTO reqDTO) {
+    public FavoriteResponseDTO getByUserAndBook(Long bookId) {
         User favUser = userService.getUserLogin();
-        Favorite favorite = favoriteRepository.findFavoriteByUserIdAndBookId(favUser.getId(), reqDTO.getBookId());
+
+        Favorite favorite = favoriteRepository.findFavoriteByUserIdAndBookId(favUser.getId(), bookId);
 
         if (favorite != null) {
             return mapper.toResponse(favorite);

@@ -13,7 +13,7 @@ public interface IFavoriteService {
 
     Void deleteFavorite(Long id);
 
-    FavoriteResponseDTO getByUserAndBook(@Valid FavoriteRequestDTO reqDTO);
+    FavoriteResponseDTO getByUserAndBook(Long bookId);
 
     ResultPaginationDTO getAll(Specification<Favorite> spec, Pageable pageable);
 }
