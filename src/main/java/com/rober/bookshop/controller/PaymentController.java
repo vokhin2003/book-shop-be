@@ -41,8 +41,9 @@ public class PaymentController {
     @Operation(summary = "Create payment URL", description = "Generate a payment URL for the given payment request.")
     public ResponseEntity<PaymentResponseDTO> createPaymentUrl(
             @Valid @RequestBody PaymentRequestDTO dto,
+            @RequestHeader(value = "X-Client-Platform", defaultValue = "web") String deviceType,
             HttpServletRequest request) {
-        return ResponseEntity.ok(this.paymentService.handleCreatePaymentUrl(dto, request));
+        return ResponseEntity.ok(this.paymentService.handleCreatePaymentUrl(dto, request, deviceType));
     }
 
 //    @GetMapping("/payments/vnpay-payment-return")
@@ -63,12 +64,17 @@ public class PaymentController {
 //                : "http://localhost:3000/payment/return?error=" + URLEncoder.encode(result.getMessage(), StandardCharsets.UTF_8);
 
 
-        String redirectUrl = "http://localhost:3000/payment/return/" + result.getTransactionId();
+        String deviceType = result.getTransactionId().split("_")[1];
 
+        String redirectUrl =deviceType.equals("web") ?
+                "http://localhost:3000/payment/return/" + result.getTransactionId()
+                :
+                "http://bromel.free.nf/payment-result.html?transactionId=" + result.getTransactionId()
+                ;
 
-        if(result.getStatus() == TransactionStatus.SUCCESS){
+        if (result.getStatus() == TransactionStatus.SUCCESS) {
 
-           String orderId = result.getTransactionId().split("_")[0];
+            String orderId = result.getTransactionId().split("_")[0];
 
             OrderResponseDTO respDTO = orderService.fetchOrderById(Long.parseLong(orderId));
 

@@ -13,7 +13,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 public interface IOrderService {
 
-    OrderResponseDTO handleCreateOrder(CreateOrderRequestDTO reqDTO, User user);
+    OrderResponseDTO handleCreateOrder(CreateOrderRequestDTO reqDTO, User user, String deviceType);
     void updateOrderStatusById(Long orderId, OrderStatus status);
     ResultPaginationDTO fetchHistory(Specification<Order> spec, Pageable pageable);
 

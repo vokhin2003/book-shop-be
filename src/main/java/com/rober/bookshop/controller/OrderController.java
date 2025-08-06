@@ -44,13 +44,14 @@ public class OrderController {
     @PostMapping("/orders")
     @ApiMessage("User place order")
     @Operation(summary = "User place order", description = "User places a new order and returns the order details.")
-    public ResponseEntity<OrderResponseDTO> userPlaceOrder(@RequestBody @Valid CreateOrderRequestDTO reqDTO) {
+    public ResponseEntity<OrderResponseDTO> userPlaceOrder(@RequestBody @Valid CreateOrderRequestDTO reqDTO,
+                                                           @RequestHeader(value = "X-Client-Platform", defaultValue = "web") String deviceType) {
         User  user = this.userService.getUserLogin();
         if (user == null) {
             throw new IdInvalidException("User not found in database");
         }
 
-        OrderResponseDTO respDTO = this.orderService.handleCreateOrder(reqDTO, user);
+        OrderResponseDTO respDTO = this.orderService.handleCreateOrder(reqDTO, user, deviceType);
 
         if (respDTO.getPaymentMethod() == PaymentMethod.COD && respDTO.getStatus() == OrderStatus.PENDING){
             this.emailService.sendOrderSuccessEmail(user, respDTO);
@@ -95,7 +96,7 @@ public class OrderController {
     public ResponseEntity<OrderResponseDTO> adminCreateOrder(@RequestBody @Validated(AdminCreateOrderValidationGroup.class) CreateOrderRequestDTO reqDTO) {
         User user = this.userService.getUserById(reqDTO.getUserId());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.orderService.handleCreateOrder(reqDTO, user));
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.orderService.handleCreateOrder(reqDTO, user, ""));
     }
 
     @PutMapping("/admin/orders/{id}")

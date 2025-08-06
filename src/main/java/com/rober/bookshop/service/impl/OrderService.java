@@ -55,7 +55,7 @@ public class OrderService implements IOrderService {
 
     @Override
     @Transactional
-    public OrderResponseDTO handleCreateOrder(CreateOrderRequestDTO reqDTO, User user) {
+    public OrderResponseDTO handleCreateOrder(CreateOrderRequestDTO reqDTO, User user, String deviceType) {
 
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalPrice = BigDecimal.ZERO;
@@ -110,9 +110,14 @@ public class OrderService implements IOrderService {
 
         // Tạo Transaction
         Transaction transaction = new Transaction();
+
+//        String transactionId = reqDTO.getPaymentMethod() == PaymentMethod.COD
+//                ? "COD_" + savedOrder.getId()
+//                : savedOrder.getId() + "_" + Instant.now().toEpochMilli();
+
         String transactionId = reqDTO.getPaymentMethod() == PaymentMethod.COD
                 ? "COD_" + savedOrder.getId()
-                : savedOrder.getId() + "_" + Instant.now().toEpochMilli();
+                : savedOrder.getId() + "_" + deviceType + "_" + Instant.now().toEpochMilli();
         transaction.setTransactionId(transactionId);
         transaction.setAmount(totalPrice);
         transaction.setPaymentMethod(reqDTO.getPaymentMethod());

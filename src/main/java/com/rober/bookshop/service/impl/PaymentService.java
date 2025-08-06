@@ -50,7 +50,13 @@ public class PaymentService implements IPaymentService {
     private String vnp_PayUrl;
 
     @Value("${rober.vnpay.return-url}")
-    private String vnp_ReturnUrl;
+    private String vnp_WebReturnUrl;
+
+    @Value("${rober.vnpay.app.return-url}")
+    private String vnpAppReturnUrl;
+
+    @Value("${rober.server.ip}")
+    private String serverIp;
 
 //    public PaymentService(IOrderService orderService) {
 //        this.orderService = orderService;
@@ -58,7 +64,7 @@ public class PaymentService implements IPaymentService {
 
     @Override
     @Transactional
-    public PaymentResponseDTO handleCreatePaymentUrl(PaymentRequestDTO dto, HttpServletRequest request) {
+    public PaymentResponseDTO handleCreatePaymentUrl(PaymentRequestDTO dto, HttpServletRequest request, String deviceType) {
         Order order = orderRepository.findById(dto.getOrderId())
                 .orElseThrow(() -> new IdInvalidException("Order with id = " + dto.getOrderId() + " not found"));
 
@@ -113,7 +119,9 @@ public class PaymentService implements IPaymentService {
         } else {
             // Thanh toán lại: Tạo Transaction mới
             transaction = new Transaction();
-            String transactionId = dto.getOrderId() + "_" + Instant.now().toEpochMilli();
+//            String transactionId = dto.getOrderId() + "_" +Instant.now().toEpochMilli();
+
+            String transactionId = dto.getOrderId() + "_" + deviceType +"_" +Instant.now().toEpochMilli();
             transaction.setTransactionId(transactionId);
             transaction.setAmount(dto.getAmount());
             transaction.setPaymentMethod(dto.getPaymentMethod());
@@ -131,6 +139,14 @@ public class PaymentService implements IPaymentService {
         result.setStatus(TransactionStatus.PENDING);
 
         if (dto.getPaymentMethod() == PaymentMethod.VNPAY) {
+
+            String vnp_ReturnUrl = vnp_WebReturnUrl;
+
+            if (!deviceType.equalsIgnoreCase("web")){
+                vnp_ReturnUrl = "http://" + serverIp + vnpAppReturnUrl;
+            }
+            log.info(">>>> Return url: {}", vnp_ReturnUrl);
+
             // Logic tạo URL thanh toán VNPay
             String vnp_Version = "2.1.0";
             String vnp_Command = "pay";
