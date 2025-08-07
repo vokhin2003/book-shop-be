@@ -4,4 +4,5 @@ import com.rober.bookshop.model.request.NotificationRequestDTO;
 
 public interface IFirebaseMessagingService {
     String sendNotificationByToken(NotificationRequestDTO request);
+    String sendNotificationTestKillApp(NotificationRequestDTO request);
 }

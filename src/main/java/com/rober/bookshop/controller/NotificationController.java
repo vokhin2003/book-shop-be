@@ -21,4 +21,9 @@ public class NotificationController {
         return ResponseEntity.ok(firebaseMessagingService.sendNotificationByToken(request));
     }
 
+    @PostMapping("/notifications/test-kill-app")
+    public ResponseEntity<String> sendNotificationForKillAppTest(@RequestBody NotificationRequestDTO request) {
+        return ResponseEntity.ok(firebaseMessagingService.sendNotificationTestKillApp(request));
+    }
+
 }

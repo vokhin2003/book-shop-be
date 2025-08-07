@@ -9,6 +9,7 @@ import com.rober.bookshop.repository.UserDeviceTokenRepository;
 import com.rober.bookshop.service.IFirebaseMessagingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -49,6 +50,37 @@ public class FirebaseMessagingService implements IFirebaseMessagingService {
         }
 
         return "Successfully sent notification";
+    }
+
+    @Override
+    public String sendNotificationTestKillApp(NotificationRequestDTO request) {
+        // Chỉ sử dụng data payload
+        Message message = Message.builder()
+                .setToken(request.getDeviceToken())
+                .putData("title", request.getTitle())
+                .putData("body", request.getBody())
+                .putData("image", request.getImage() != null ? request.getImage() : "")
+                .putAllData(request.getData()) // Bao gồm orderId và url
+                .putData("click_action", "OPEN_ORDER_DETAIL") // Tùy chỉnh action để Android nhận diện
+                .build();
+
+        try {
+            firebaseMessaging.send(message);
+            log.info("Successfully sent test notification to token: {}", request.getDeviceToken());
+        } catch (FirebaseMessagingException e) {
+            log.error("Failed to send test notification to token: {}. Error: {}", request.getDeviceToken(), e.getMessage());
+            if (e.getErrorCode().equals("messaging/registration-token-not-registered")) {
+                userDeviceTokenRepository.findByDeviceToken(request.getDeviceToken())
+                        .ifPresent(token -> {
+                            token.setActive(false);
+                            userDeviceTokenRepository.save(token);
+                            log.info("Marked token as inactive: {}", request.getDeviceToken());
+                        });
+            }
+            throw new RuntimeException("Failed to send notification: " + e.getMessage(), e);
+        }
+
+        return "Successfully sent test notification";
     }
 
 }
