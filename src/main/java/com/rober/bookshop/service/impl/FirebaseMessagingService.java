@@ -12,6 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -55,14 +58,20 @@ public class FirebaseMessagingService implements IFirebaseMessagingService {
     @Override
     public String sendNotificationTestKillApp(NotificationRequestDTO request) {
         // Chỉ sử dụng data payload
-        Message message = Message.builder()
+        Message.Builder messageBuilder = Message.builder()
                 .setToken(request.getDeviceToken())
                 .putData("title", request.getTitle())
                 .putData("body", request.getBody())
-                .putData("image", request.getImage() != null ? request.getImage() : "")
-                .putAllData(request.getData()) // Bao gồm orderId và url
-                .putData("click_action", "OPEN_ORDER_DETAIL") // Tùy chỉnh action để Android nhận diện
-                .build();
+                .putData("image", request.getImage() != null ? request.getImage() : "");
+
+        // Kiểm tra và thêm data từ request, tránh ghi đè click_action nếu đã có
+        Map<String, String> data = new HashMap<>(request.getData() != null ? request.getData() : new HashMap<>());
+        if (!data.containsKey("click_action")) {
+            data.put("click_action", "OPEN_ORDER_DETAIL"); // Thêm click_action nếu chưa có
+        }
+        messageBuilder.putAllData(data);
+
+        Message message = messageBuilder.build();
 
         try {
             firebaseMessaging.send(message);

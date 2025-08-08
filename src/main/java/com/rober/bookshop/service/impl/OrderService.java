@@ -34,10 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -313,11 +310,11 @@ public class OrderService implements IOrderService {
         }
 
         if (reqDTO.getStatus() != updatedOrder.getStatus()) {
-            List<UserDeviceToken> tokens = userDeviceTokenRepository.findByUserIdAndDeviceTypeAndIsActiveTrue(updatedOrder.getUser().getId(), "WEB");
+            // Lấy tất cả token active của user, không phân biệt deviceType
+            List<UserDeviceToken> tokens = userDeviceTokenRepository.findByUserIdAndIsActiveTrue(updatedOrder.getUser().getId());
             for (UserDeviceToken token : tokens) {
                 NotificationRequestDTO notification = new NotificationRequestDTO();
                 notification.setTitle("Cập nhật trạng thái đơn hàng");
-                // Sử dụng mapping tiếng Việt cho trạng thái
                 notification.setBody("Đơn hàng #" + id + " đã được cập nhật thành: " + getOrderStatusVi(reqDTO.getStatus()));
                 notification.setDeviceToken(token.getDeviceToken());
                 // Lấy ảnh bìa sách đầu tiên nếu có, nếu không thì dùng logo shop
@@ -326,17 +323,27 @@ public class OrderService implements IOrderService {
                     imageUrl = updatedOrder.getOrderItems().get(0).getBook().getThumbnail();
                 }
                 if (imageUrl == null || imageUrl.isEmpty()) {
-                    imageUrl = "https://camo.githubusercontent.com/a91aaa1d350e2c2450fb563fed4a71039eb8841c3225afc6931a990a4f472bb0/68747470733a2f2f66697265626173652e676f6f676c652e636f6d2f696d616765732f6272616e642d67756964656c696e65732f6c6f676f2d6275696c745f77686974652e706e67";
+                    imageUrl = "https://res.cloudinary.com/dtfe2e0ey/image/upload/v1748637153/logo_igayak.png";
                 }
                 notification.setImage(imageUrl);
-                // Thêm url vào data để FE redirect khi click
-                notification.setData(Map.of(
-                    "orderId", id.toString(),
-                    "url", "http://localhost:3000/order/detail/" + id
-                ));
+
+                // Thêm data dựa trên deviceType, loại bỏ url cho Android
+                Map<String, String> data = new HashMap<>();
+                data.put("orderId", id.toString());
+                if (token.getDeviceType().equals("WEB")) {
+                    data.put("url", "http://localhost:3000/order/detail/" + id);
+                } else if (token.getDeviceType().equals("ANDROID")) {
+                    data.put("order_id", id.toString()); // Tương thích với payload của bạn
+                }
+                notification.setData(data);
+
                 try {
-                    firebaseMessagingService.sendNotificationByToken(notification);
-                    log.info("Notification sent to token: {}", token.getDeviceToken());
+                    if (token.getDeviceType().equals("WEB")) {
+                        firebaseMessagingService.sendNotificationByToken(notification);
+                    } else if (token.getDeviceType().equals("ANDROID")) {
+                        firebaseMessagingService.sendNotificationTestKillApp(notification);
+                    }
+                    log.info("Notification sent to token: {} with deviceType: {}", token.getDeviceToken(), token.getDeviceType());
                 } catch (Exception e) {
                     log.error("Failed to send notification to token: {}. Error: {}", token.getDeviceToken(), e.getMessage());
                 }
