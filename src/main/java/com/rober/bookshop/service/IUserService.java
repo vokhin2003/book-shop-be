@@ -12,7 +12,7 @@ import org.springframework.data.jpa.domain.Specification;
 public interface IUserService {
 
     User handleGetUserByUsername(String username);
-    RegisterResponseDTO register(RegisterRequestDTO requestDTO);
+    RegisterResponseDTO register(RegisterRequestDTO requestDTO, String clientPlatform);
     void verifyUser(String token);
     LoginResponseDTO handleUserLogin(LoginRequestDTO reqLoginDTO);
     void saveRefreshToken(User user, String refreshToken);
