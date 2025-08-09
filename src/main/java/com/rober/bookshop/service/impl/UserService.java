@@ -56,7 +56,7 @@ public class UserService implements IUserService {
     @Value("${rober.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
 
-<<<<<<< HEAD
+
     @Value("${outbound.identity.client-id}")
     private String CLIENT_ID;
 
