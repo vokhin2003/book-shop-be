@@ -332,9 +332,6 @@ public class OrderService implements IOrderService {
                 data.put("orderId", id.toString());
                 if (token.getDeviceType().equals("WEB")) {
                     data.put("url", "http://localhost:3000/order/detail/" + id);
-                } else if (token.getDeviceType().equals("ANDROID")) {
-                    data.put("order_id", id.toString()); // Tương thích với payload của bạn
-                    data.put("type", "order_detail");
                 }
                 notification.setData(data);
 
