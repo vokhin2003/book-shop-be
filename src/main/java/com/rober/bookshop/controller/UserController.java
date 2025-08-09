@@ -2,6 +2,7 @@ package com.rober.bookshop.controller;
 
 import com.rober.bookshop.annotation.ApiMessage;
 import com.rober.bookshop.model.entity.User;
+import com.rober.bookshop.model.request.CreatePasswordRequestDTO;
 import com.rober.bookshop.model.request.DeviceTokenRequestDTO;
 import com.rober.bookshop.model.request.UserInfoRequestDTO;
 import com.rober.bookshop.model.request.UserRequestDTO;
@@ -76,6 +77,12 @@ public class UserController {
     @ApiMessage("Remove user device token")
     public ResponseEntity<Void> removeDeviceToken(@RequestBody @Valid DeviceTokenRequestDTO request) {
         this.userDeviceTokenService.removeDeviceToken(request);
+        return ResponseEntity.ok(null);
+    }
+
+    @PostMapping("/users/create-password")
+    public ResponseEntity<Void> createPassword(@RequestBody @Valid CreatePasswordRequestDTO request) {
+        this.userService.createPassword(request);
         return ResponseEntity.ok(null);
     }
 }

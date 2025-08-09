@@ -29,6 +29,7 @@ public class LoginResponseDTO {
         private Long id;
         private String avatar;
         private List<Permission> permissions;
+        private Boolean noPassword;
     }
 
     @Getter

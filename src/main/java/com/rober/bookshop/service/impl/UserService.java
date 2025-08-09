@@ -33,6 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.List;
@@ -189,6 +190,7 @@ public class UserService implements IUserService {
                     .avatar(savedUser.getAvatar())
                     .role(savedUser.getRole().getName())
                     .permissions(savedUser.getRole().getPermissions())
+                    .noPassword(!StringUtils.hasText(savedUser.getPassword()))
                     .build();
             res.setUser(userLogin);
         }
@@ -261,6 +263,7 @@ public class UserService implements IUserService {
             userLogin.setAvatar(savedUser.getAvatar());
             userLogin.setRole(savedUser.getRole().getName());
             userLogin.setPermissions(savedUser.getRole().getPermissions());
+            userLogin.setNoPassword(!StringUtils.hasText(savedUser.getPassword()));
 
             userGetAccount.setUser(userLogin);
         }
@@ -300,6 +303,7 @@ public class UserService implements IUserService {
                 .avatar(savedUser.getAvatar())
                 .role(savedUser.getRole().getName())
                 .permissions(savedUser.getRole().getPermissions())
+                .noPassword(!StringUtils.hasText(savedUser.getPassword()))
                 .build();
         res.setUser(userLogin);
 
@@ -439,20 +443,6 @@ public class UserService implements IUserService {
         LoginResponseDTO res = new LoginResponseDTO();
         Role userRole = roleRepository.findByName("CUSTOMER");
 
-//        User user = handleGetUserByUsername(userInfo.getEmail());
-//        if (user != null) {
-//            LoginResponseDTO.UserLogin userLogin = LoginResponseDTO.UserLogin.builder()
-//                    .id(user.getId())
-//                    .email(user.getEmail())
-//                    .phone(user.getPhone())
-//                    .address(user.getAddress())
-//                    .fullName(user.getFullName())
-//                    .avatar(user.getAvatar())
-//                    .role(user.getRole().getName())
-//                    .permissions(user.getRole().getPermissions())
-//                    .build();
-//            res.setUser(userLogin);
-//        }
 
         // Onboard user
         User user = handleGetUserByUsername(userInfo.getEmail());
@@ -475,12 +465,25 @@ public class UserService implements IUserService {
                 .avatar(user.getAvatar())
                 .role(user.getRole().getName())
                 .permissions(user.getRole().getPermissions())
+                .noPassword(!StringUtils.hasText(user.getPassword()))
                 .build();
 
         res.setUser(userLogin);
         String accessToken = this.securityUtil.createAccessToken(userInfo.getEmail(), res);
         res.setAccessToken(accessToken);
         return res;
+    }
+
+    @Override
+    public void createPassword(CreatePasswordRequestDTO request) {
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new InputInvalidException("Password must be equal confirm password");
+        }
+
+        User user = getUserLogin();
+        log.info(">>> Password of user: {}", user.getPassword());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        userRepository.save(user);
     }
 
 

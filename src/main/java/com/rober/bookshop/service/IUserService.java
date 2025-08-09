@@ -31,5 +31,6 @@ public interface IUserService {
     void handleChangePassword(ChangePasswordRequestDTO reqDTO);
     User getUserById(Long id);
     LoginResponseDTO outboundAuthenticate(String code);
+    void createPassword(CreatePasswordRequestDTO request);
 
 }
