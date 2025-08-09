@@ -179,4 +179,27 @@ public class AuthController {
         return ResponseEntity.ok(null);
     }
 
+    @PostMapping("/auth/outbound/authentication")
+    public ResponseEntity<LoginResponseDTO> outboundAuthenticate(@RequestParam("code") String code) {
+        LoginResponseDTO res = this.userService.outboundAuthenticate(code);
+
+        String refreshToken = this.securityUtil.createRefreshToken(res.getUser().getEmail(), res);
+
+        User user = userService.handleGetUserByUsername(res.getUser().getEmail());
+        if (user != null) {
+            // Lưu refresh token vào bảng tokens
+            userService.saveRefreshToken(user, refreshToken);
+        }
+
+        ResponseCookie resCookie = ResponseCookie
+                .from("refresh_token", refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(refreshTokenExpiration)
+                .build();
+
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, resCookie.toString()).body(res);
+    }
+
 }

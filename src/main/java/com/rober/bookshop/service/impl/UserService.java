@@ -8,17 +8,17 @@ import com.rober.bookshop.model.entity.Role;
 import com.rober.bookshop.model.entity.Token;
 import com.rober.bookshop.model.entity.User;
 import com.rober.bookshop.model.request.*;
-import com.rober.bookshop.model.response.LoginResponseDTO;
-import com.rober.bookshop.model.response.RegisterResponseDTO;
-import com.rober.bookshop.model.response.ResultPaginationDTO;
-import com.rober.bookshop.model.response.UserResponseDTO;
+import com.rober.bookshop.model.response.*;
 import com.rober.bookshop.repository.RoleRepository;
 import com.rober.bookshop.repository.TokenRepository;
 import com.rober.bookshop.repository.UserRepository;
+import com.rober.bookshop.repository.httpclient.OutboundIdentityClient;
+import com.rober.bookshop.repository.httpclient.OutboundUserClient;
 import com.rober.bookshop.service.IEmailService;
 import com.rober.bookshop.service.IUserService;
 import com.rober.bookshop.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -50,9 +50,23 @@ public class UserService implements IUserService {
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final UserMapper userMapper;
     private final RoleRepository roleRepository;
+    private final OutboundIdentityClient outboundIdentityClient;
+    private final OutboundUserClient outboundUserClient;
 
     @Value("${rober.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
+
+    @Value("${outbound.identity.client-id}")
+    private String CLIENT_ID;
+
+    @Value("${outbound.identity.client-secret}")
+    private String CLIENT_SECRET;
+
+    @Value("${outbound.identity.redirect-uri}")
+    private String REDIRECT_URI;
+
+    @NonFinal
+    private final String GRANT_TYPE = "authorization_code";
 
     @Override
     public User handleGetUserByUsername(String username) {
@@ -169,7 +183,7 @@ public class UserService implements IUserService {
 
         res.setAccessToken(accessToken);
 
-       return res;
+        return res;
     }
 
     @Override
@@ -196,7 +210,6 @@ public class UserService implements IUserService {
                     tokenRepository.save(token);
                     log.info("Revoked old refresh token: {} for user: {}", token.getToken(), user.getEmail());
                 });
-
 
 
         // Kiểm tra xem token đã tồn tại chưa
@@ -261,7 +274,7 @@ public class UserService implements IUserService {
 
         User savedUser = token.getUser();
         if (savedUser == null) {
-            throw  new IdInvalidException("User not found for this refresh token");
+            throw new IdInvalidException("User not found for this refresh token");
         }
 
         LoginResponseDTO res = new LoginResponseDTO();
@@ -392,6 +405,68 @@ public class UserService implements IUserService {
         User userDB = userRepository.findById(id).orElseThrow(() -> new IdInvalidException("User with id = " + id + " not found"));
         return userDB;
 
+    }
+
+    @Override
+    public LoginResponseDTO outboundAuthenticate(String code) {
+        ExchangeTokenResponseDTO response = outboundIdentityClient.exchangeToken(ExchangeTokenRequestDTO.builder()
+                .code(code)
+                .clientId(CLIENT_ID)
+                .clientSecret(CLIENT_SECRET)
+                .redirectUri(REDIRECT_URI)
+                .grantType(GRANT_TYPE)
+                .build());
+
+        log.info("TOKEN RESPONSE {}", response);
+
+        // Get user info
+        OutboundUserResponseDTO userInfo = outboundUserClient.getUserInfo("json", response.getAccessToken());
+
+        LoginResponseDTO res = new LoginResponseDTO();
+        Role userRole = roleRepository.findByName("CUSTOMER");
+
+//        User user = handleGetUserByUsername(userInfo.getEmail());
+//        if (user != null) {
+//            LoginResponseDTO.UserLogin userLogin = LoginResponseDTO.UserLogin.builder()
+//                    .id(user.getId())
+//                    .email(user.getEmail())
+//                    .phone(user.getPhone())
+//                    .address(user.getAddress())
+//                    .fullName(user.getFullName())
+//                    .avatar(user.getAvatar())
+//                    .role(user.getRole().getName())
+//                    .permissions(user.getRole().getPermissions())
+//                    .build();
+//            res.setUser(userLogin);
+//        }
+
+        // Onboard user
+        User user = handleGetUserByUsername(userInfo.getEmail());
+        if (user == null) {
+            String fullName = userInfo.getGivenName() + " " + userInfo.getFamilyName();
+            user = userRepository.save(User.builder()
+                    .email(userInfo.getEmail())
+                    .fullName(fullName)
+                    .role(userRole)
+                    .active(true)
+                    .build());
+        }
+
+        LoginResponseDTO.UserLogin userLogin = LoginResponseDTO.UserLogin.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .address(user.getAddress())
+                .fullName(user.getFullName())
+                .avatar(user.getAvatar())
+                .role(user.getRole().getName())
+                .permissions(user.getRole().getPermissions())
+                .build();
+
+        res.setUser(userLogin);
+        String accessToken = this.securityUtil.createAccessToken(userInfo.getEmail(), res);
+        res.setAccessToken(accessToken);
+        return res;
     }
 
 
