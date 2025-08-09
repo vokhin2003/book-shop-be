@@ -56,6 +56,7 @@ public class UserService implements IUserService {
     @Value("${rober.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
 
+<<<<<<< HEAD
     @Value("${outbound.identity.client-id}")
     private String CLIENT_ID;
 
@@ -68,13 +69,17 @@ public class UserService implements IUserService {
     @NonFinal
     private final String GRANT_TYPE = "authorization_code";
 
+    @Value("${rober.server.ip}")
+    private String serverIp;
+
+
     @Override
     public User handleGetUserByUsername(String username) {
         return this.userRepository.findByEmail(username);
     }
 
     @Override
-    public RegisterResponseDTO register(RegisterRequestDTO requestDTO) {
+    public RegisterResponseDTO register(RegisterRequestDTO requestDTO, String clientPlatform) {
         if (this.userRepository.existsByEmail(requestDTO.getEmail())) {
             throw new IdInvalidException("Email already exists");
         }
@@ -105,7 +110,16 @@ public class UserService implements IUserService {
         tokenRepository.save(token);
 
         // Gửi email xác minh
-        String verifyLink = "http://localhost:8080" + "/api/v1/auth/verify?token=" + verifyToken;
+
+
+        String verifyLink = clientPlatform.equalsIgnoreCase("web") ?
+                "http://localhost:8080"
+                :
+                "http://"+serverIp+":8080";
+
+        verifyLink +=  "/api/v1/auth/verify?token=" + verifyToken;
+
+
         emailService.sendVerificationEmail(newUser.getEmail(), newUser.getFullName(), verifyLink);
 
         RegisterResponseDTO res = new RegisterResponseDTO();

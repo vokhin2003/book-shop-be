@@ -55,8 +55,9 @@ public class AuthController {
     @PostMapping("/auth/register")
     @ApiMessage("Register user")
     @Operation(summary = "Register user", description = "Register a new user and return the registration details.")
-    public ResponseEntity<RegisterResponseDTO> register(@Valid @RequestBody RegisterRequestDTO reqUser) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.register(reqUser));
+    public ResponseEntity<RegisterResponseDTO> register(@Valid @RequestBody RegisterRequestDTO reqUser,
+                                                        @RequestHeader(value = "X-Client-Platform", defaultValue = "web") String clientPlatform) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.userService.register(reqUser, clientPlatform));
     }
 
 //    @GetMapping("/auth/verify")
