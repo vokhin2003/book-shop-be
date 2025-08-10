@@ -121,7 +121,7 @@ public class UserService implements IUserService {
                 :
                 "http://" + serverIp + ":8080";
 
-        verifyLink += "/api/v1/auth/verify?token=" + verifyToken;
+        verifyLink +=  "/api/v1/auth/verify?token=" + verifyToken + "&clientPlatform=" + clientPlatform;
 
 
         emailService.sendVerificationEmail(newUser.getEmail(), newUser.getFullName(), verifyLink);
