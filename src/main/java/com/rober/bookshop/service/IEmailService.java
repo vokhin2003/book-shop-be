@@ -9,4 +9,5 @@ public interface IEmailService {
 //    void sendVerifyMail(User user, Token token, String clientType);
     void sendVerificationEmail(String toEmail, String fullName, String verifyLink);
     void sendOrderSuccessEmail(User user, OrderResponseDTO dto);
+    void sendResetPasswordEmail(String toEmail, String fullName, String resetLink);
 }

@@ -33,4 +33,12 @@ public interface IUserService {
     LoginResponseDTO outboundAuthenticate(String code);
     void createPassword(CreatePasswordRequestDTO request);
 
+    void resendVerification(String email, String clientPlatform);
+
+    UserResponseDTO toggleAdminActive(Long id, boolean isAdminActive);
+
+    void handleForgotPassword(ForgotPasswordRequestDTO request, String clientPlatform);
+    String handleResetRedirect(String token);
+    void handleResetPassword(ResetPasswordRequestDTO request);
+
 }

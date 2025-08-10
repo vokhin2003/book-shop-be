@@ -82,6 +82,12 @@
 			<version>4.10.2</version>
 		</dependency>
 
+		<!-- Spring Mail for reset password emails -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
 		<!-- Lombok -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>

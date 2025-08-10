@@ -26,9 +26,8 @@ public class UserDetailsCustom implements UserDetailsService {
             throw new UsernameNotFoundException("Username not found");
         }
 
-        if (!user.isActive()) {
-            throw new UsernameNotFoundException("Account is not activated");
-        }
+        // Do not block inactive or admin-disabled users at the authentication provider level.
+        // Business rules will be enforced later in the login service to return precise messages/status codes.
 
         return new User(
                 user.getEmail(),

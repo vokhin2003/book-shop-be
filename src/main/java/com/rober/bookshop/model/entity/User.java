@@ -29,7 +29,14 @@ public class User extends Base {
     @Column(length = 20)
     private String phone;
 
+    @Column(name = "is_active", nullable = false)
     private boolean active;
+
+    @Column(name = "is_admin_active", nullable = false)
+    private boolean adminActive = true;
+
+    @Column(name = "verified_by", length = 30)
+    private String verifiedBy; // e.g. EMAIL, GOOGLE
 
     private String avatar;
 

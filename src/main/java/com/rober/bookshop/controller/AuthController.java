@@ -3,9 +3,7 @@ package com.rober.bookshop.controller;
 import com.rober.bookshop.annotation.ApiMessage;
 import com.rober.bookshop.exception.IdInvalidException;
 import com.rober.bookshop.model.entity.User;
-import com.rober.bookshop.model.request.ChangePasswordRequestDTO;
-import com.rober.bookshop.model.request.LoginRequestDTO;
-import com.rober.bookshop.model.request.RegisterRequestDTO;
+import com.rober.bookshop.model.request.*;
 import com.rober.bookshop.model.response.LoginResponseDTO;
 import com.rober.bookshop.model.response.RegisterResponseDTO;
 import com.rober.bookshop.service.IEmailService;
@@ -123,6 +121,38 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, resCookie.toString()).body(res);
+    }
+
+    @PostMapping("/auth/resend-verify")
+    @ApiMessage("Resend verification email")
+    @Operation(summary = "Resend verification email", description = "Resend a new verification token for a pending user.")
+    public ResponseEntity<Void> resendVerify(@RequestParam("email") String email,
+                                               @RequestHeader(value = "X-Client-Platform", defaultValue = "web") String clientPlatform) {
+        this.userService.resendVerification(email, clientPlatform);
+        return ResponseEntity.ok(null);
+    }
+
+    @PostMapping("/auth/forgot-password")
+    @ApiMessage("Request forgot password")
+    @Operation(summary = "Request forgot password", description = "Send reset password link to user email if exists")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request,
+                                               @RequestHeader(value = "X-Client-Platform", defaultValue = "web") String clientPlatform) {
+        this.userService.handleForgotPassword(request, clientPlatform);
+        return ResponseEntity.ok(null);
+    }
+
+    @GetMapping("/auth/reset")
+    @ApiMessage("Validate reset token and redirect to FE")
+    public ResponseEntity<Void> resetRedirect(@RequestParam("token") String token) {
+        String redirect = this.userService.handleResetRedirect(token);
+        return ResponseEntity.status(HttpStatus.FOUND).header(HttpHeaders.LOCATION, redirect).build();
+    }
+
+    @PostMapping("/auth/reset")
+    @ApiMessage("Reset password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
+        this.userService.handleResetPassword(request);
+        return ResponseEntity.ok(null);
     }
 
     @GetMapping("/auth/account")

@@ -15,6 +15,8 @@ public class UserResponseDTO {
     private String address;
     private String phone;
     private boolean active;
+    private boolean adminActive;
+    private String verifiedBy;
     private String avatar;
     private RoleUser role;
 

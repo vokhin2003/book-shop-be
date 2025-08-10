@@ -18,6 +18,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -30,6 +33,7 @@ import java.util.List;
 public class EmailService implements IEmailService {
 
     private final SendGrid sendGrid;
+    private final JavaMailSender mailSender;
     @Qualifier("from")
     private final String fromMail;
 
@@ -175,6 +179,30 @@ public class EmailService implements IEmailService {
         } catch (IOException e) {
             log.error("Error sending verification email to {}: {}", user.getEmail(), e.getMessage());
             throw new EmailException("Error sending verification email");
+        }
+    }
+
+    @Override
+    public void sendResetPasswordEmail(String toEmail, String fullName, String resetLink) {
+        try {
+            var message = mailSender.createMimeMessage();
+            var helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(toEmail);
+            helper.setSubject("Reset Your BookShop Password");
+            helper.setFrom(fromMail);
+
+            // Load HTML template from classpath: resources/templates/reset-password.html
+            String html = new String(new ClassPathResource("templates/reset-password.html").getInputStream().readAllBytes());
+            html = html.replace("{{fullName}}", fullName)
+                    .replace("{{resetLink}}", resetLink)
+                    .replace("{{logoUrl}}", logoUrl);
+
+            helper.setText(html, true);
+            mailSender.send(message);
+            log.info("Reset password email sent successfully to: {}", toEmail);
+        } catch (Exception e) {
+            log.error("Error sending reset password email to {}: {}", toEmail, e.getMessage());
+            throw new EmailException("Error sending reset password email");
         }
     }
 

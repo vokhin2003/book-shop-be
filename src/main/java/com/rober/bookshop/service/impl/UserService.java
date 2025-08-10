@@ -1,7 +1,9 @@
 package com.rober.bookshop.service.impl;
 
 import com.rober.bookshop.enums.TokenType;
+import com.rober.bookshop.exception.ForbiddenException;
 import com.rober.bookshop.exception.IdInvalidException;
+import com.rober.bookshop.exception.UnauthorizedException;
 import com.rober.bookshop.exception.InputInvalidException;
 import com.rober.bookshop.mapper.UserMapper;
 import com.rober.bookshop.model.entity.Role;
@@ -91,6 +93,7 @@ public class UserService implements IUserService {
                 .phone(requestDTO.getPhone())
                 .password(passwordEncoder.encode(requestDTO.getPassword()))
                 .active(false)
+                .adminActive(true)
                 .build();
 
         Role userRole = roleRepository.findByName("CUSTOMER");
@@ -105,7 +108,7 @@ public class UserService implements IUserService {
         token.setUser(newUser);
         token.setToken(verifyToken);
         token.setType(TokenType.VERIFY);
-        token.setExpiresAt(Instant.now().plusSeconds(15 * 60)); // 15 phút
+        token.setExpiresAt(Instant.now().plusSeconds(60)); // TEST: 1 phút
         token.setCreatedAt(Instant.now());
         token.setRevoked(false);
         tokenRepository.save(token);
@@ -116,9 +119,9 @@ public class UserService implements IUserService {
         String verifyLink = clientPlatform.equalsIgnoreCase("web") ?
                 "http://localhost:8080"
                 :
-                "http://"+serverIp+":8080";
+                "http://" + serverIp + ":8080";
 
-        verifyLink +=  "/api/v1/auth/verify?token=" + verifyToken;
+        verifyLink += "/api/v1/auth/verify?token=" + verifyToken;
 
 
         emailService.sendVerificationEmail(newUser.getEmail(), newUser.getFullName(), verifyLink);
@@ -129,6 +132,42 @@ public class UserService implements IUserService {
         res.setPhone(newUser.getPhone());
         res.setFullName(newUser.getFullName());
         return res;
+    }
+
+    @Override
+    public void resendVerification(String email, String clientPlatform) {
+        User user = this.userRepository.findByEmail(email);
+        if (user == null) {
+            throw new IdInvalidException("User not found with email");
+        }
+        if (user.isActive()) {
+            throw new IdInvalidException("User already verified");
+        }
+
+        // Revoke all previous VERIFY tokens of this user
+        this.tokenRepository.findByUserAndTypeAndRevokedFalseAndExpiresAtAfter(user, TokenType.VERIFY, Instant.now())
+                .forEach(t -> {
+                    t.setRevoked(true);
+                    tokenRepository.save(t);
+                    log.info("token with id = {} has been revoked", t.getId());
+                });
+
+        String verifyToken = securityUtil.generateVerifyToken(user.getEmail());
+        Token token = new Token();
+        token.setUser(user);
+        token.setToken(verifyToken);
+        token.setType(TokenType.VERIFY);
+        token.setExpiresAt(Instant.now().plusSeconds(60)); // TEST: 1 phút
+        token.setCreatedAt(Instant.now());
+        token.setRevoked(false);
+        tokenRepository.save(token);
+
+        String verifyLink = clientPlatform.equalsIgnoreCase("web") ?
+                "http://localhost:8080" :
+                "http://" + serverIp + ":8080";
+        verifyLink += "/api/v1/auth/verify?token=" + verifyToken;
+
+        emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), verifyLink);
     }
 
     @Override
@@ -160,6 +199,7 @@ public class UserService implements IUserService {
         }
 
         user.setActive(true);
+        user.setVerifiedBy("EMAIL");
         User newUser = userRepository.save(user);
 
         // Thu hồi token sau khi sử dụng
@@ -181,6 +221,12 @@ public class UserService implements IUserService {
 
         User savedUser = handleGetUserByUsername(reqLoginDTO.getUsername());
         if (savedUser != null) {
+            if (!savedUser.isActive()) {
+                throw new UnauthorizedException("Account is not verified");
+            }
+            if (!savedUser.isAdminActive()) {
+                throw new ForbiddenException("Account disabled by admin");
+            }
             LoginResponseDTO.UserLogin userLogin = LoginResponseDTO.UserLogin.builder()
                     .id(savedUser.getId())
                     .email(savedUser.getEmail())
@@ -266,6 +312,8 @@ public class UserService implements IUserService {
             userLogin.setNoPassword(!StringUtils.hasText(savedUser.getPassword()));
 
             userGetAccount.setUser(userLogin);
+        } else {
+            throw new UnauthorizedException("User not found for this token");
         }
 
         return userGetAccount;
@@ -337,6 +385,13 @@ public class UserService implements IUserService {
         updatedUser.setRole(role);
 
         return this.userMapper.toResponseDTO(this.userRepository.save(updatedUser));
+    }
+
+    @Override
+    public UserResponseDTO toggleAdminActive(Long id, boolean isAdminActive) {
+        User user = this.userRepository.findById(id).orElseThrow(() -> new IdInvalidException("User with id = " + id + " not found"));
+        user.setAdminActive(isAdminActive);
+        return this.userMapper.toResponseDTO(this.userRepository.save(user));
     }
 
     @Override
@@ -453,7 +508,20 @@ public class UserService implements IUserService {
                     .fullName(fullName)
                     .role(userRole)
                     .active(true)
+                    .verifiedBy("GOOGLE")
+                    .adminActive(true)
                     .build());
+        }
+        // User exists but not active yet: trust Google verified email -> activate, unless admin disabled
+        if (user != null) {
+            if (!user.isAdminActive()) {
+                throw new ForbiddenException("Account disabled by admin");
+            }
+            if (!user.isActive() && userInfo.isVerifiedEmail()) {
+                user.setActive(true);
+                user.setVerifiedBy("GOOGLE");
+                user = userRepository.save(user);
+            }
         }
 
         LoginResponseDTO.UserLogin userLogin = LoginResponseDTO.UserLogin.builder()
@@ -486,5 +554,64 @@ public class UserService implements IUserService {
         userRepository.save(user);
     }
 
+    @Override
+    public void handleForgotPassword(ForgotPasswordRequestDTO request, String clientPlatform) {
+        User user = this.userRepository.findByEmail(request.getEmail());
+        if (user == null) {
+            return; // tránh lộ thông tin
+        }
+        if (!user.isAdminActive()) {
+            return; // không gửi nếu bị admin khoá
+        }
+        // tạo/reset token RESET_PASSWORD
+        this.tokenRepository.findByUserAndTypeAndRevokedFalseAndExpiresAtAfter(user, TokenType.RESET_PASSWORD, Instant.now())
+                .forEach(t -> {
+                    t.setRevoked(true);
+                    tokenRepository.save(t);
+                });
+
+        String jwt = securityUtil.generateResetToken(user.getEmail());
+        Token token = new Token();
+        token.setUser(user);
+        token.setToken(jwt);
+        token.setType(TokenType.RESET_PASSWORD);
+        token.setExpiresAt(Instant.now().plusSeconds(15 * 60));
+        token.setCreatedAt(Instant.now());
+        token.setRevoked(false);
+        tokenRepository.save(token);
+
+        String resetLink = (clientPlatform.equalsIgnoreCase("web") ? "http://localhost:8080" : "http://" + serverIp + ":8080")
+                + "/api/v1/auth/reset?token=" + jwt;
+
+        // bạn có thể triển khai template riêng, tạm gọi hàm default
+        emailService.sendResetPasswordEmail(user.getEmail(), user.getFullName(), resetLink);
+    }
+
+    @Override
+    public String handleResetRedirect(String token) {
+        Token t = tokenRepository.findByToken(token);
+        if (t == null || t.isRevoked() || t.getType() != TokenType.RESET_PASSWORD || Instant.now().isAfter(t.getExpiresAt())) {
+            return "http://localhost:3000/forgot/return?status=error"; // FE sẽ render lỗi
+        }
+        // token hợp lệ: redirect về FE cùng token để render form
+        return "http://localhost:3000/forgot/return?status=success&token=" + token;
+    }
+
+    @Override
+    public void handleResetPassword(ResetPasswordRequestDTO request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new InputInvalidException("Password must be equal confirm password");
+        }
+        Token t = tokenRepository.findByToken(request.getToken());
+        if (t == null || t.isRevoked() || t.getType() != TokenType.RESET_PASSWORD || Instant.now().isAfter(t.getExpiresAt())) {
+            throw new IdInvalidException("Invalid reset token");
+        }
+        User user = t.getUser();
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        // revoke token sau khi đổi mật khẩu
+        t.setRevoked(true);
+        tokenRepository.save(t);
+    }
 
 }

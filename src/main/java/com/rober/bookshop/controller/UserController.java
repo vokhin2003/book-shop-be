@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
@@ -84,5 +85,16 @@ public class UserController {
     public ResponseEntity<Void> createPassword(@RequestBody @Valid CreatePasswordRequestDTO request) {
         this.userService.createPassword(request);
         return ResponseEntity.ok(null);
+    }
+
+    @PatchMapping("/admin/users/{id}/status")
+    @ApiMessage("Toggle user admin active status")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Toggle isAdminActive", description = "Enable or disable a user's admin active status")
+    public ResponseEntity<UserResponseDTO> toggleAdminActive(
+            @PathVariable("id") Long id,
+            @RequestParam("isAdminActive") boolean isAdminActive
+    ) {
+        return ResponseEntity.ok(this.userService.toggleAdminActive(id, isAdminActive));
     }
 }

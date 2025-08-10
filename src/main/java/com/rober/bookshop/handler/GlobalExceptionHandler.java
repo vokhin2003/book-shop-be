@@ -39,6 +39,24 @@ public class GlobalExceptionHandler {
 
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<RestResponse<Object>> handleUnauthorized(UnauthorizedException ex) {
+        RestResponse<Object> res = new RestResponse<>();
+        res.setStatusCode(HttpStatus.UNAUTHORIZED.value());
+        res.setMessage(ex.getMessage());
+        res.setError("Unauthorized");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(res);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<RestResponse<Object>> handleForbidden(ForbiddenException ex) {
+        RestResponse<Object> res = new RestResponse<>();
+        res.setStatusCode(HttpStatus.FORBIDDEN.value());
+        res.setMessage(ex.getMessage());
+        res.setError("Forbidden");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(res);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<RestResponse<Object>> validationError(MethodArgumentNotValidException ex) {
         BindingResult bindingResult = ex.getBindingResult();

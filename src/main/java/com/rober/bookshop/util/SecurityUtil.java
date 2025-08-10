@@ -97,13 +97,28 @@ public class SecurityUtil {
 
     public String generateVerifyToken(String email) {
         Instant now = Instant.now();
-        Instant validity = now.plus(15, ChronoUnit.MINUTES); // Hết hạn sau 15 phút
+        Instant validity = now.plus(1, ChronoUnit.MINUTES); // TEST: Hết hạn sau 1 phút
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuedAt(now)
                 .expiresAt(validity)
                 .subject(email)
                 .claim("type", "VERIFY") // Thêm claim để xác định loại token
+                .build();
+
+        JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
+        return this.jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims)).getTokenValue();
+    }
+
+    public String generateResetToken(String email) {
+        Instant now = Instant.now();
+        Instant validity = now.plus(15, ChronoUnit.MINUTES);
+
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuedAt(now)
+                .expiresAt(validity)
+                .subject(email)
+                .claim("type", "RESET_PASSWORD")
                 .build();
 
         JwsHeader jwsHeader = JwsHeader.with(JWT_ALGORITHM).build();
