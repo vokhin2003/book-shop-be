@@ -9,9 +9,10 @@ import com.rober.bookshop.model.request.RegisterRequestDTO;
 import com.rober.bookshop.model.response.LoginResponseDTO;
 import com.rober.bookshop.model.response.RegisterResponseDTO;
 import com.rober.bookshop.service.IEmailService;
-import com.rober.bookshop.service.IFileService;
 import com.rober.bookshop.service.IUserService;
 import com.rober.bookshop.util.SecurityUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,15 +21,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.Operation;
 
-import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -45,6 +41,7 @@ public class AuthController {
 
     @Value("${rober.jwt.refresh-token-validity-in-seconds}")
     private long refreshTokenExpiration;
+
 
     @GetMapping("/")
     public String Hello() {
@@ -76,24 +73,48 @@ public class AuthController {
     @GetMapping("/auth/verify")
     @ApiMessage("Verify account")
     @Operation(summary = "Verify account", description = "Verify a user's account using a token and redirect to the frontend.")
-    public ResponseEntity<Void> verifyUser(@RequestParam("token") String token) {
+    public ResponseEntity<Void> verifyUser(@RequestParam("token") String token,
+                                           @RequestParam(value = "clientPlatform", defaultValue = "web") String clientPlatform) {
+
+        boolean isWeb = clientPlatform.equalsIgnoreCase("web");
         try {
             this.userService.verifyUser(token);
-            String redirectUrl = "http://localhost:3000/verify/return?status=success";
+
+
+//            String redirectUrl = "http://localhost:3000/verify/return?status=success";
+
+            String redirectUrl = isWeb ?
+                    "http://localhost:3000/verify/return?status=success"
+                    :
+                    "http://bromel.free.nf/verify-return.html?status=success";
+
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header("Location", redirectUrl)
                     .build();
         } catch (IdInvalidException e) {
             log.error("Xác minh thất bại: {}", e.getMessage());
-            String redirectUrl = "http://localhost:3000/verify/return?status=error&message="
-                    + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+//            String redirectUrl = "http://localhost:3000/verify/return?status=error&message=";
+
+            String redirectUrl = isWeb ?
+                    "http://localhost:3000/verify/return?status=error&message="
+                    :
+                    "http://bromel.free.nf/verify-return.html?status=error&message=";
+
+            redirectUrl += URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header("Location", redirectUrl)
                     .build();
         } catch (Exception e) {
             log.error("Lỗi không mong muốn khi xác minh: {}", e.getMessage());
-            String redirectUrl = "http://localhost:3000/verify/return?status=error&message="
-                    + URLEncoder.encode("Đã xảy ra lỗi không mong muốn", StandardCharsets.UTF_8);
+//            String redirectUrl = "http://localhost:3000/verify/return?status=error&message="
+
+            String redirectUrl = isWeb ?
+                    "http://localhost:3000/verify/return?status=error&message="
+                    :
+                    "http://bromel.free.nf/verify-return.html?status=error&message=";
+
+            redirectUrl += URLEncoder.encode("Đã xảy ra lỗi không mong muốn", StandardCharsets.UTF_8);
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header("Location", redirectUrl)
                     .build();
