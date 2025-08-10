@@ -87,7 +87,7 @@ public class UserController {
         return ResponseEntity.ok(null);
     }
 
-    @PatchMapping("/admin/users/{id}/status")
+    @PutMapping("/admin/users/{id}/status")
     @ApiMessage("Toggle user admin active status")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Toggle isAdminActive", description = "Enable or disable a user's admin active status")
