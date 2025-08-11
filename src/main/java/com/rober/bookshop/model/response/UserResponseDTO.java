@@ -23,6 +23,9 @@ public class UserResponseDTO {
     private Instant createdAt;
     private Instant updatedAt;
 
+    // For future FE usage if needed
+    // private List<AddressResponseDTO> addresses;
+
     @Getter
     @Setter
     public static class RoleUser {

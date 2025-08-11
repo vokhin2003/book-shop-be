@@ -59,4 +59,7 @@ public class User extends Base {
     @OneToMany(mappedBy = "user")
     private List<Favorite> favorites;
 
+    @OneToMany(mappedBy = "user")
+    private List<Address> addresses;
+
 }
