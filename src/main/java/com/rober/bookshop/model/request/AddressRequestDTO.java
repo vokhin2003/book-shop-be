@@ -1,5 +1,6 @@
 package com.rober.bookshop.model.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rober.bookshop.enums.AddressType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -27,6 +28,7 @@ public class AddressRequestDTO {
     @NotNull
     private AddressType addressType;
 
+    @JsonProperty("is_default")
     private boolean isDefault;
 }
 

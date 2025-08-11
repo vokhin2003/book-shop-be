@@ -1,5 +1,6 @@
 package com.rober.bookshop.model.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rober.bookshop.enums.AddressType;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +17,7 @@ public class AddressResponseDTO {
     private String ward;
     private String addressDetail;
     private AddressType addressType;
+    @JsonProperty("is_default")
     private boolean isDefault;
     private Instant createdAt;
     private Instant updatedAt;
