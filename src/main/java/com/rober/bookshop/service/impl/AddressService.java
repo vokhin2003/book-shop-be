@@ -12,7 +12,9 @@ import com.rober.bookshop.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -30,9 +32,13 @@ public class AddressService implements IAddressService {
         Address address = addressMapper.toEntity(dto);
         address.setUser(me);
 
-        if (dto.isDefault()) {
-            // clear current defaults
-            addressRepository.findByUser(me).forEach(a -> {
+        List<Address> addressList = me.getAddresses();
+
+        if(CollectionUtils.isEmpty(addressList)){
+            address.setDefault(true);
+        }
+        else if(dto.isDefault()){
+            addressList.forEach(a -> {
                 if (a.isDefault()) {
                     a.setDefault(false);
                     addressRepository.save(a);
@@ -86,6 +92,10 @@ public class AddressService implements IAddressService {
         User me = userService.getUserLogin();
         return addressRepository.findByUser(me).stream()
                 .map(addressMapper::toResponse)
+                .sorted(
+                        Comparator.comparing(AddressResponseDTO::isDefault).reversed()
+                                .thenComparing(AddressResponseDTO::getUpdatedAt, Comparator.reverseOrder())
+                )
                 .toList();
     }
 
