@@ -4,6 +4,7 @@ import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.Type;
 
 import java.math.BigDecimal;
@@ -47,6 +48,9 @@ public class Book extends Base {
 
     @Column(nullable = false, columnDefinition = "INTEGER CHECK (discount >= 0 AND discount <= 100)")
     private Integer discount;
+
+    @Formula("price * (1 - discount / 100.0)")
+    private BigDecimal actualPrice;
 
     private Integer sold;
     private Integer age;
