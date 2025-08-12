@@ -12,5 +12,6 @@ public interface ICartService {
     List<CartResponseDTO> getAll();
     void handleRemoveItemFromCart(Long bookId);
     void handleClearCart();
+    void handleRemoveSelectedItems(List<Long> bookIds);
 
 }

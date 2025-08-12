@@ -103,6 +103,15 @@ public class CartService implements ICartService {
         this.cartRepository.deleteAllByUser(user);
     }
 
+    @Override
+    @Transactional
+    public void handleRemoveSelectedItems(List<Long> bookIds) {
+        User user = this.userService.getUserLogin();
+        if (user == null) throw new IdInvalidException("User not found in database");
+        if (bookIds == null || bookIds.isEmpty()) return;
+        this.cartRepository.deleteAllByUserAndBook_IdIn(user, bookIds);
+    }
+
     private void validateQuantity(Book book, Integer reqQuantity) {
         if (book.getQuantity() < reqQuantity) {
             throw new InputInvalidException("Cart quantity exceeds book quantity");

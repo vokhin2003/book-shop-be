@@ -3,6 +3,7 @@ package com.rober.bookshop.controller;
 import com.rober.bookshop.annotation.ApiMessage;
 import com.rober.bookshop.model.request.CartRequestDTO;
 import com.rober.bookshop.model.response.CartResponseDTO;
+import com.rober.bookshop.model.request.BulkRemoveCartRequestDTO;
 import com.rober.bookshop.service.ICartService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,14 @@ public class CartController {
     @Operation(summary = "Clear cart", description = "Remove all items from the user's cart.")
     public ResponseEntity<Void> removeAllItem() {
         this.cartService.handleClearCart();
+        return ResponseEntity.ok(null);
+    }
+
+    @DeleteMapping("/carts/bulk")
+    @ApiMessage("Remove selected items in cart")
+    @Operation(summary = "Remove selected items in cart", description = "Remove selected cart items by list of bookIds.")
+    public ResponseEntity<Void> removeSelectedItems(@RequestBody @Valid BulkRemoveCartRequestDTO request) {
+        this.cartService.handleRemoveSelectedItems(request.getBookIds());
         return ResponseEntity.ok(null);
     }
 
