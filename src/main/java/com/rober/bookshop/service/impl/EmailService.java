@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -183,6 +184,7 @@ public class EmailService implements IEmailService {
     }
 
     @Override
+    @Async
     public void sendResetPasswordEmail(String toEmail, String fullName, String resetLink) {
         try {
             var message = mailSender.createMimeMessage();
