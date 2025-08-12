@@ -165,7 +165,7 @@ public class UserService implements IUserService {
         String verifyLink = clientPlatform.equalsIgnoreCase("web") ?
                 "http://localhost:8080" :
                 "http://" + serverIp + ":8080";
-        verifyLink += "/api/v1/auth/verify?token=" + verifyToken;
+        verifyLink += "/api/v1/auth/verify?token=" + verifyToken + "&clientPlatform=" + clientPlatform;
 
         emailService.sendVerificationEmail(user.getEmail(), user.getFullName(), verifyLink);
     }
@@ -583,18 +583,30 @@ public class UserService implements IUserService {
         String resetLink = (clientPlatform.equalsIgnoreCase("web") ? "http://localhost:8080" : "http://" + serverIp + ":8080")
                 + "/api/v1/auth/reset?token=" + jwt;
 
+        resetLink+= "&clientPlatform=" + clientPlatform;
+
         // bạn có thể triển khai template riêng, tạm gọi hàm default
         emailService.sendResetPasswordEmail(user.getEmail(), user.getFullName(), resetLink);
     }
 
     @Override
-    public String handleResetRedirect(String token) {
+    public String handleResetRedirect(String token, String clientPlatform) {
         Token t = tokenRepository.findByToken(token);
+
+        boolean isWeb = clientPlatform.equalsIgnoreCase("web");
+
         if (t == null || t.isRevoked() || t.getType() != TokenType.RESET_PASSWORD || Instant.now().isAfter(t.getExpiresAt())) {
-            return "http://localhost:3000/forgot/return?status=error"; // FE sẽ render lỗi
+            return isWeb?
+                    "http://localhost:3000/forgot/return?status=error"
+                    :
+                    "http://bromel.free.nf/forgot-return.html?status=error"; // FE sẽ render lỗi
         }
         // token hợp lệ: redirect về FE cùng token để render form
-        return "http://localhost:3000/forgot/return?status=success&token=" + token;
+        return isWeb ?
+                "http://localhost:3000/forgot/return?status=success&token=" + token
+                :
+                "http://bromel.free.nf/forgot-return.html?status=success&token=" + token;
+
     }
 
     @Override

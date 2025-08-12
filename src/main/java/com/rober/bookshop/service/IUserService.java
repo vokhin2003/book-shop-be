@@ -38,7 +38,7 @@ public interface IUserService {
     UserResponseDTO toggleAdminActive(Long id, boolean isAdminActive);
 
     void handleForgotPassword(ForgotPasswordRequestDTO request, String clientPlatform);
-    String handleResetRedirect(String token);
+    String handleResetRedirect(String token, String clientPlatform);
     void handleResetPassword(ResetPasswordRequestDTO request);
 
 }

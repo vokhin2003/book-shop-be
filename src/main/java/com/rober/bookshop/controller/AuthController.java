@@ -164,8 +164,9 @@ public class AuthController {
 
     @GetMapping("/auth/reset")
     @ApiMessage("Validate reset token and redirect to FE")
-    public ResponseEntity<Void> resetRedirect(@RequestParam("token") String token) {
-        String redirect = this.userService.handleResetRedirect(token);
+    public ResponseEntity<Void> resetRedirect(@RequestParam("token") String token,
+                                              @RequestParam(value = "clientPlatform", defaultValue = "web") String clientPlatform) {
+        String redirect = this.userService.handleResetRedirect(token, clientPlatform);
         return ResponseEntity.status(HttpStatus.FOUND).header(HttpHeaders.LOCATION, redirect).build();
     }
 
