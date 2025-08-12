@@ -21,6 +21,9 @@ public class Category extends Base {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column
+    private String thumbnail;
+
     @OneToMany(mappedBy = "category")
     private List<Book> books;
 
