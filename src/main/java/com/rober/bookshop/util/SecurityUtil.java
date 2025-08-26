@@ -97,7 +97,7 @@ public class SecurityUtil {
 
     public String generateVerifyToken(String email) {
         Instant now = Instant.now();
-        Instant validity = now.plus(1, ChronoUnit.MINUTES); // TEST: Hết hạn sau 1 phút
+        Instant validity = now.plus(15, ChronoUnit.MINUTES); // Hết hạn sau 15 phút
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuedAt(now)

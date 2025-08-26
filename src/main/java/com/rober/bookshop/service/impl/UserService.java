@@ -558,10 +558,10 @@ public class UserService implements IUserService {
     public void handleForgotPassword(ForgotPasswordRequestDTO request, String clientPlatform) {
         User user = this.userRepository.findByEmail(request.getEmail());
         if (user == null) {
-            return; // tránh lộ thông tin
+            throw new IdInvalidException("Email không tồn tại trong hệ thống");
         }
         if (!user.isAdminActive()) {
-            return; // không gửi nếu bị admin khoá
+            throw new IdInvalidException("Tài khoản đã bị khoá bởi quản trị viên");
         }
         // tạo/reset token RESET_PASSWORD
         this.tokenRepository.findByUserAndTypeAndRevokedFalseAndExpiresAtAfter(user, TokenType.RESET_PASSWORD, Instant.now())

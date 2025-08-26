@@ -23,12 +23,12 @@ public class CleanupService {
     private final TokenRepository tokenRepository;
     private final UserRepository userRepository;
 
-    // Every 2 minutes (for testing)
-    @Scheduled(cron = "0 */2 * * * *")
+    // Every day 00:00 (for testing)
+    @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void cleanupUnverifiedUsersAndOldTokens() {
-        // Grace period: 3 minutes (for testing)
-        Instant grace = Instant.now().minus(3, ChronoUnit.MINUTES);
+        // Grace period: 1 day
+        Instant grace = Instant.now().minus(1, ChronoUnit.DAYS);
 
         // Delete unverified users whose verify tokens expired before grace time
         List<Token> expiredVerifyTokens = tokenRepository
