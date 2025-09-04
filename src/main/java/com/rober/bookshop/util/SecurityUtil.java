@@ -55,7 +55,7 @@ public class SecurityUtil {
 
         // Lấy vai trò của người dùng
         String role = "ROLE_USER"; // Vai trò mặc định
-        User user = this.userRepository.findByEmail(email);
+        User user = this.userRepository.findByEmail(email).orElse(null);
         if (user != null && user.getRole() != null) {
             role = "ROLE_" + user.getRole().getName().toUpperCase(); // Ví dụ: ROLE_ADMIN
         }

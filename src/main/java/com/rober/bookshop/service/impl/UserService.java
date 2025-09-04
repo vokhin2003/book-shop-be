@@ -78,7 +78,7 @@ public class UserService implements IUserService {
 
     @Override
     public User handleGetUserByUsername(String username) {
-        return this.userRepository.findByEmail(username);
+        return this.userRepository.findByEmail(username).orElse(null);
     }
 
     @Override
@@ -96,7 +96,8 @@ public class UserService implements IUserService {
                 .adminActive(true)
                 .build();
 
-        Role userRole = roleRepository.findByName("CUSTOMER");
+        Role userRole = roleRepository.findByName("CUSTOMER")
+                .orElseThrow(() -> new IdInvalidException("Role CUSTOMER not found"));
         user.setRole(userRole);
 
         User newUser = this.userRepository.save(user);
@@ -136,10 +137,7 @@ public class UserService implements IUserService {
 
     @Override
     public void resendVerification(String email, String clientPlatform) {
-        User user = this.userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IdInvalidException("User not found with email");
-        }
+        User user = this.userRepository.findByEmail(email).orElseThrow(() -> new IdInvalidException("User not found with email"));
         if (user.isActive()) {
             throw new IdInvalidException("User already verified");
         }
@@ -172,10 +170,8 @@ public class UserService implements IUserService {
 
     @Override
     public void verifyUser(String token) {
-        Token verificationToken = this.tokenRepository.findByToken(token);
-        if (verificationToken == null) {
-            throw new IdInvalidException("Invalid verification token");
-        }
+        Token verificationToken = this.tokenRepository.findByToken(token)
+                .orElseThrow(() -> new IdInvalidException("Invalid verification token"));
 
         if (verificationToken.getType() != TokenType.VERIFY) {
             throw new IdInvalidException("Token is not for verification");
@@ -275,7 +271,7 @@ public class UserService implements IUserService {
 
 
         // Kiểm tra xem token đã tồn tại chưa
-        if (tokenRepository.findByToken(refreshToken) != null) {
+        if (tokenRepository.findByToken(refreshToken).isPresent()) {
             log.info("Refresh token already exists for user: {}", user.getEmail());
             return; // Không lưu nếu token đã tồn tại
         }
@@ -324,10 +320,8 @@ public class UserService implements IUserService {
         Jwt decodedToken = this.securityUtil.checkValidRefreshToken(refreshToken);
         String email = decodedToken.getSubject();
 
-        Token token = this.tokenRepository.findByToken(refreshToken);
-        if (token == null) {
-            throw new IdInvalidException("Refresh token not found in database");
-        }
+        Token token = this.tokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new IdInvalidException("Refresh token not found in database"));
 
         if (token.isRevoked()) {
             throw new IdInvalidException("Refresh token has been revoked");
@@ -496,7 +490,8 @@ public class UserService implements IUserService {
         OutboundUserResponseDTO userInfo = outboundUserClient.getUserInfo("json", response.getAccessToken());
 
         LoginResponseDTO res = new LoginResponseDTO();
-        Role userRole = roleRepository.findByName("CUSTOMER");
+        Role userRole = roleRepository.findByName("CUSTOMER")
+                .orElseThrow(() -> new IdInvalidException("Role CUSTOMER not found"));
 
 
         // Onboard user
@@ -556,10 +551,8 @@ public class UserService implements IUserService {
 
     @Override
     public void handleForgotPassword(ForgotPasswordRequestDTO request, String clientPlatform) {
-        User user = this.userRepository.findByEmail(request.getEmail());
-        if (user == null) {
-            throw new IdInvalidException("Email không tồn tại trong hệ thống");
-        }
+        User user = this.userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new IdInvalidException("Email không tồn tại trong hệ thống"));
         if (!user.isAdminActive()) {
             throw new IdInvalidException("Tài khoản đã bị khoá bởi quản trị viên");
         }
@@ -591,7 +584,7 @@ public class UserService implements IUserService {
 
     @Override
     public String handleResetRedirect(String token, String clientPlatform) {
-        Token t = tokenRepository.findByToken(token);
+        Token t = tokenRepository.findByToken(token).orElse(null);
 
         boolean isWeb = clientPlatform.equalsIgnoreCase("web");
 
@@ -614,7 +607,7 @@ public class UserService implements IUserService {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new InputInvalidException("Password must be equal confirm password");
         }
-        Token t = tokenRepository.findByToken(request.getToken());
+        Token t = tokenRepository.findByToken(request.getToken()).orElse(null);
         if (t == null || t.isRevoked() || t.getType() != TokenType.RESET_PASSWORD || Instant.now().isAfter(t.getExpiresAt())) {
             throw new IdInvalidException("Invalid reset token");
         }

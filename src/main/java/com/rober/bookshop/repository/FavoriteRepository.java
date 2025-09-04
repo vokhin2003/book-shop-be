@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 public interface FavoriteRepository extends JpaRepository<Favorite, Long>, JpaSpecificationExecutor<Favorite> {
 
     @Transactional
@@ -14,5 +16,5 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long>, JpaSp
     @Query("delete from Favorite f where f.id = ?1")
     void deleteFavoriteById(Long id);
 
-    Favorite findFavoriteByUserIdAndBookId(Long userId, Long bookId);
+    Optional<Favorite> findFavoriteByUserIdAndBookId(Long userId, Long bookId);
 }

@@ -29,7 +29,7 @@ public class RoleService implements IRoleService {
 
     @Override
     public Role getCustomerRole() {
-        return this.roleRepository.findByName("CUSTOMER");
+        return this.roleRepository.findByName("CUSTOMER").orElseThrow(() -> new IdInvalidException("Role CUSTOMER not found"));
     }
 
     @Override

@@ -9,11 +9,11 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TokenRepository extends JpaRepository<Token, Long> {
-
-    Token findByToken(String token);
+    Optional<Token> findByToken(String token);
 //    @Query("select t from Token t where t.user = ?1 and t.type = ?2 and t.revoked = false and t.expiresAt > ?3")
     List<Token> findByUserAndTypeAndRevokedFalseAndExpiresAtAfter(User user, TokenType type, Instant now);
     List<Token> findAllByTypeAndExpiresAtBeforeAndUserActiveFalse(TokenType type, Instant time);

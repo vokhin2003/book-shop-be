@@ -34,8 +34,8 @@ public class CartService implements ICartService {
         if (user == null) throw new IdInvalidException("User not found in database");
         Book book = this.bookService.getBookEntityById(reqDTO.getBookId());
 
-        Cart cartItem = this.cartRepository.findByUserAndBook(user, book);
-        if (cartItem == null) {
+        java.util.Optional<Cart> cartOpt = this.cartRepository.findByUserAndBook(user, book);
+        if (cartOpt.isEmpty()) {
             // add new item to cart
             validateQuantity(book, reqDTO.getQuantity());
             Cart newCart = Cart.builder()
@@ -46,6 +46,7 @@ public class CartService implements ICartService {
 
             return cartMapper.toResponseDTO(this.cartRepository.save(newCart));
         } else {
+            Cart cartItem = cartOpt.get();
             // add quantity to an exist item in cart
 
             Integer quantity = cartItem.getQuantity() + reqDTO.getQuantity();
@@ -64,10 +65,9 @@ public class CartService implements ICartService {
 
         Book book = this.bookService.getBookEntityById(reqDTO.getBookId());
 
-        Cart cartItem = this.cartRepository.findByUserAndBook(user, book);
-        if (cartItem == null) {
-            throw new IdInvalidException("Cart not found in database");
-        } else {
+        Cart cartItem = this.cartRepository.findByUserAndBook(user, book)
+                .orElseThrow(() -> new IdInvalidException("Cart not found in database"));
+        {
             validateQuantity(book, reqDTO.getQuantity());
             cartItem.setQuantity(reqDTO.getQuantity());
             return cartMapper.toResponseDTO(this.cartRepository.save(cartItem));
