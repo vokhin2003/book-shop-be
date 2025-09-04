@@ -1,6 +1,7 @@
 package com.rober.bookshop.controller;
 
 import com.rober.bookshop.annotation.ApiMessage;
+import com.rober.bookshop.annotation.RateLimited;
 import com.rober.bookshop.exception.IdInvalidException;
 import com.rober.bookshop.model.entity.User;
 import com.rober.bookshop.model.request.*;
@@ -49,6 +50,7 @@ public class AuthController {
 
     @PostMapping("/auth/register")
     @ApiMessage("Register user")
+    @RateLimited(maxAttempts = 3, windowMinutes = 60, key = "auth:register")
     @Operation(summary = "Register user", description = "Register a new user and return the registration details.")
     public ResponseEntity<RegisterResponseDTO> register(@Valid @RequestBody RegisterRequestDTO reqUser,
                                                         @RequestHeader(value = "X-Client-Platform", defaultValue = "web") String clientPlatform) {
@@ -121,6 +123,7 @@ public class AuthController {
 
     @PostMapping("/auth/login")
     @ApiMessage("User login")
+    @RateLimited(maxAttempts = 5, windowMinutes = 15, key = "auth:login")
     @Operation(summary = "User login", description = "Authenticate a user and return login details with a refresh token.")
     public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO reqLoginDTO) {
         LoginResponseDTO res = this.authService.handleUserLogin(reqLoginDTO);
