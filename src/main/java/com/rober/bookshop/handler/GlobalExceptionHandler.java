@@ -2,6 +2,8 @@ package com.rober.bookshop.handler;
 
 import com.rober.bookshop.exception.*;
 import com.rober.bookshop.model.response.RestResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -14,29 +16,61 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
+    @Value("${app.error.show-details:false}")
+    private boolean showErrorDetails;
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<RestResponse<Object>> handleAllException(Exception ex) {
+        // Generate unique error ID for tracking
+        String errorId = UUID.randomUUID().toString();
+        
+        // Log full error details for debugging (server-side only)
+        log.error("Unexpected error occurred [ID: {}]: {}", errorId, ex.getMessage(), ex);
+        
         RestResponse<Object> res = new RestResponse<Object>();
         res.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        res.setMessage(ex.getMessage());
+        
+        // Only show detailed error message in development
+        if (showErrorDetails) {
+            res.setMessage(ex.getMessage());
+        } else {
+            res.setMessage("An unexpected error occurred. Please contact support with error ID: " + errorId);
+        }
+        
         res.setError("Internal Server Error");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(res);
     }
 
-    @ExceptionHandler(value = {UsernameNotFoundException.class, BadCredentialsException.class, IdInvalidException.class, EmailException.class, FileUploadException.class, InputInvalidException.class})
-    public ResponseEntity<RestResponse<Object>> handleIdException(Exception ex) {
+    @ExceptionHandler(value = {UsernameNotFoundException.class, BadCredentialsException.class})
+    public ResponseEntity<RestResponse<Object>> handleAuthenticationException(Exception ex) {
+        // Log authentication attempts for security monitoring
+        log.warn("Authentication failed: {}", ex.getMessage());
+        
+        RestResponse<Object> res = new RestResponse<>();
+        res.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        // Generic message to prevent username enumeration
+        res.setMessage("Invalid credentials provided");
+        res.setError("Authentication Failed");
+
+        return ResponseEntity.badRequest().body(res);
+    }
+
+    @ExceptionHandler(value = {IdInvalidException.class, EmailException.class, FileUploadException.class, InputInvalidException.class})
+    public ResponseEntity<RestResponse<Object>> handleBusinessException(Exception ex) {
+        log.info("Business exception: {}", ex.getMessage());
+        
         RestResponse<Object> res = new RestResponse<>();
         res.setStatusCode(HttpStatus.BAD_REQUEST.value());
         res.setMessage(ex.getMessage());
-        res.setError("Exception occurs...");
+        res.setError("Validation Error");
 
         return ResponseEntity.badRequest().body(res);
-
     }
 
     @ExceptionHandler(UnauthorizedException.class)
