@@ -8,6 +8,7 @@ import com.rober.bookshop.model.request.UserInfoRequestDTO;
 import com.rober.bookshop.model.request.UserRequestDTO;
 import com.rober.bookshop.model.response.ResultPaginationDTO;
 import com.rober.bookshop.model.response.UserResponseDTO;
+import com.rober.bookshop.service.IAuthService;
 import com.rober.bookshop.service.IUserDeviceTokenService;
 import com.rober.bookshop.service.IUserService;
 import com.turkraft.springfilter.boot.Filter;
@@ -29,6 +30,7 @@ import io.swagger.v3.oas.annotations.Operation;
 public class UserController {
 
     private final IUserService userService;
+    private final IAuthService authService;
     private final IUserDeviceTokenService userDeviceTokenService;
 
     @PostMapping("/users")
@@ -83,7 +85,7 @@ public class UserController {
 
     @PostMapping("/users/create-password")
     public ResponseEntity<Void> createPassword(@RequestBody @Valid CreatePasswordRequestDTO request) {
-        this.userService.createPassword(request);
+        this.authService.createPassword(request);
         return ResponseEntity.ok(null);
     }
 

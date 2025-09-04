@@ -2,8 +2,6 @@ package com.rober.bookshop.service;
 
 import com.rober.bookshop.model.entity.User;
 import com.rober.bookshop.model.request.*;
-import com.rober.bookshop.model.response.LoginResponseDTO;
-import com.rober.bookshop.model.response.RegisterResponseDTO;
 import com.rober.bookshop.model.response.ResultPaginationDTO;
 import com.rober.bookshop.model.response.UserResponseDTO;
 import org.springframework.data.domain.Pageable;
@@ -12,33 +10,12 @@ import org.springframework.data.jpa.domain.Specification;
 public interface IUserService {
 
     User handleGetUserByUsername(String username);
-    RegisterResponseDTO register(RegisterRequestDTO requestDTO, String clientPlatform);
-    void verifyUser(String token);
-    LoginResponseDTO handleUserLogin(LoginRequestDTO reqLoginDTO);
-    void saveRefreshToken(User user, String refreshToken);
-    LoginResponseDTO.UserGetAccount fetchAccount();
-    LoginResponseDTO fetchUserByRefreshToken(String refreshToken);
-
-
     UserResponseDTO create(UserRequestDTO reqDTO);
     UserResponseDTO update(Long id, UserRequestDTO reqDTO);
     void delete(Long id);
     UserResponseDTO handleUpdateInfo(UserInfoRequestDTO reqDTO);
-
     ResultPaginationDTO getAllUsers(Specification<User> spec, Pageable pageable);
-    void handleUserLogout();
     User getUserLogin();
-    void handleChangePassword(ChangePasswordRequestDTO reqDTO);
     User getUserById(Long id);
-    LoginResponseDTO outboundAuthenticate(String code);
-    void createPassword(CreatePasswordRequestDTO request);
-
-    void resendVerification(String email, String clientPlatform);
-
     UserResponseDTO toggleAdminActive(Long id, boolean isAdminActive);
-
-    void handleForgotPassword(ForgotPasswordRequestDTO request, String clientPlatform);
-    String handleResetRedirect(String token, String clientPlatform);
-    void handleResetPassword(ResetPasswordRequestDTO request);
-
 }
